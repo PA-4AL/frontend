@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PA Tournament — Bracket</title>
+<link rel="stylesheet" href="pa.css" />
+<style>
+  .app-content { padding:0; display:flex; flex-direction:column; }
+  .bracket-head {
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:18px 24px; border-bottom:1px solid var(--border);
+    background:var(--card);
+  }
+  .bracket-head .title { font-family:var(--font-display); font-weight:900; font-size:24px; text-transform:uppercase; }
+  .bracket-head .spacer { flex:1; }
+
+  /* Viewport pannable */
+  .bracket-viewport {
+    flex:1; position:relative; overflow:hidden;
+    background:
+      radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0);
+    background-size:26px 26px;
+    cursor:grab;
+    min-height:0;
+  }
+  .bracket-viewport.grabbing { cursor:grabbing; }
+  .bracket-canvas { position:absolute; top:0; left:0; transform-origin:0 0; padding:60px; }
+
+  /* Round labels */
+  .bracket { display:flex; align-items:stretch; gap:64px; }
+  .round { display:flex; flex-direction:column; justify-content:space-around; min-width:230px; }
+  .round-label {
+    font-family:var(--font-mono); font-size:12px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.08em; color:var(--muted-foreground);
+    text-align:center; margin-bottom:18px; padding:6px 0;
+    border-bottom:2px solid var(--border);
+  }
+  .round-body { flex:1; display:flex; flex-direction:column; justify-content:space-around; }
+
+  .match { flex:1; display:flex; flex-direction:column; justify-content:center; position:relative; }
+
+  /* Connecteurs */
+  .round-body:not(.last) .match::after {
+    content:""; position:absolute; left:100%; width:32px; top:50%; height:50%;
+    border-right:2px solid var(--border);
+    border-top:2px solid var(--border);
+    pointer-events:none;
+  }
+  .round-body:not(.last) .match:nth-child(even)::after {
+    top:auto; bottom:50%;
+    border-top:none;
+    border-bottom:2px solid var(--border);
+  }
+  .round-body:not(.first) .match::before {
+    content:""; position:absolute; right:100%; width:32px; top:50%; height:2px;
+    background:var(--border); pointer-events:none;
+  }
+
+  /* Carte de match */
+  .bm {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius-lg); overflow:hidden;
+    box-shadow:var(--shadow-sm); position:relative; z-index:1;
+    transition:border-color .15s ease, box-shadow .15s ease, transform .12s ease;
+  }
+  .bm:hover { border-color:var(--pa-primary); box-shadow:var(--shadow-md); }
+  .bm.live { border-color:rgba(0,230,118,.5); box-shadow:0 0 0 1px rgba(0,230,118,.3), var(--shadow-md); }
+  .bm-head {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:5px 10px; font-family:var(--font-mono); font-size:10px; font-weight:700;
+    letter-spacing:.05em; color:var(--muted-foreground);
+    background:var(--muted); border-bottom:1px solid var(--border);
+  }
+  .bm-team {
+    display:flex; align-items:center; gap:9px; padding:8px 10px;
+    cursor:pointer; transition:background .12s ease;
+  }
+  .bm-team + .bm-team { border-top:1px solid var(--border); }
+  .bm-team:hover { background:var(--muted); }
+  .bm-seed { font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--muted-foreground); width:18px; flex:none; text-align:center; }
+  .bm-av { width:24px; height:24px; flex:none; border-radius:var(--radius-sm); display:grid; place-items:center; font-family:var(--font-display); font-weight:900; font-size:10px; color:#fff; }
+  .bm-name { flex:1; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bm-score { font-family:var(--font-mono); font-weight:700; font-size:15px; width:24px; text-align:center; flex:none; }
+  .bm-team.win .bm-name { color:var(--foreground); }
+  .bm-team.win .bm-score { color:var(--pa-primary); }
+  .dark .bm-team.win .bm-score { color:var(--pa-primary-light); }
+  .bm-team.lose .bm-name, .bm-team.lose .bm-score { color:var(--muted-foreground); }
+  .bm-team.win { background:color-mix(in srgb, var(--pa-primary) 7%, var(--card)); }
+  .bm-team.tbd .bm-name { color:var(--muted-foreground); font-style:italic; font-weight:500; }
+  .bm-team.tbd .bm-av { background:var(--muted); color:var(--muted-foreground); }
+
+  /* Champion */
+  .champion { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; min-width:200px; }
+  .champion .cup {
+    width:72px; height:72px; border-radius:var(--radius-full);
+    background:linear-gradient(135deg, #FFD75E, #FF9D2E);
+    display:grid; place-items:center; color:#5a3a00;
+    box-shadow:0 8px 30px rgba(255,157,46,.4);
+  }
+  .champion .cup svg { width:38px; height:38px; }
+  .champion .c-label { font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:.1em; color:var(--muted-foreground); text-transform:uppercase; }
+  .champion .c-name { font-family:var(--font-display); font-weight:900; font-size:22px; text-transform:uppercase; text-align:center; color:var(--muted-foreground); }
+
+  /* Toolbar zoom */
+  .zoom-bar {
+    position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    display:flex; align-items:center; gap:4px; z-index:10;
+    background:color-mix(in srgb, var(--card) 92%, transparent);
+    backdrop-filter:blur(12px);
+    border:1px solid var(--border); border-radius:var(--radius-full);
+    padding:5px; box-shadow:var(--shadow-lg);
+  }
+  .zoom-bar button {
+    width:34px; height:34px; border:none; background:transparent; border-radius:var(--radius-full);
+    color:var(--foreground); cursor:pointer; display:grid; place-items:center;
+  }
+  .zoom-bar button:hover { background:var(--muted); }
+  .zoom-bar button svg { width:17px; height:17px; }
+  .zoom-bar .z-val { font-family:var(--font-mono); font-size:12px; font-weight:700; width:46px; text-align:center; color:var(--muted-foreground); }
+  .zoom-bar .div { width:1px; height:20px; background:var(--border); margin:0 3px; }
+
+  .hint { position:absolute; top:16px; left:50%; transform:translateX(-50%); z-index:5;
+    font-size:12px; color:var(--muted-foreground); background:color-mix(in srgb, var(--card) 90%, transparent);
+    padding:6px 14px; border-radius:var(--radius-full); border:1px solid var(--border);
+    display:flex; align-items:center; gap:8px; pointer-events:none; opacity:1; transition:opacity .4s ease; }
+  .hint.gone { opacity:0; }
+  @media (max-width:680px){ .bracket-head{padding:14px 16px;} .hide-sm{display:none;} }
+</style>
+</head>
+<body class="dark">
+<div class="app-shell">
+  <div id="shell-sidebar"></div>
+  <div class="app-main">
+    <header class="topnav">
+      <button class="topnav-icon hide-sm" id="mobileMenu" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+      <nav class="breadcrumbs">
+        <a href="Tableau de bord.html">Admin</a><span class="sep"></span>
+        <a href="Détail tournoi.html">APEX Invitational 2026</a><span class="sep"></span>
+        <span class="crumb current">Bracket</span>
+      </nav>
+      <div class="spacer"></div>
+      <button class="topnav-icon" id="themeToggle" aria-label="Thème">
+        <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="iconSun" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+      <span class="avatar avatar-sm" style="background:var(--pa-accent)">LM</span>
+    </header>
+
+    <div class="bracket-head">
+      <span class="title">Bracket</span>
+      <span class="status-badge sb-live"><span class="dot live"></span>Live</span>
+      <span class="fmt-badge">Single Elim.</span>
+      <div class="spacer"></div>
+      <div class="tabs hide-sm" style="height:34px">
+        <button class="tab is-active">Principal</button>
+        <button class="tab">Repêchage</button>
+      </div>
+      <button class="btn btn-outline btn-h9"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Exporter</button>
+    </div>
+
+    <main class="app-content">
+      <div class="bracket-viewport" id="viewport">
+        <div class="hint" id="hint"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l-3 3 3 3"></path><path d="M9 5l3-3 3 3"></path><path d="M15 19l-3 3-3-3"></path><path d="M19 9l3 3-3 3"></path><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>Glissez pour vous déplacer · molette pour zoomer</div>
+        <div class="bracket-canvas" id="canvas">
+          <div class="bracket" id="bracket"></div>
+        </div>
+
+        <div class="zoom-bar">
+          <button id="zOut" aria-label="Dézoomer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+          <span class="z-val" id="zVal">100%</span>
+          <button id="zIn" aria-label="Zoomer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+          <div class="div"></div>
+          <button id="zFit" aria-label="Ajuster" title="Ajuster à l'écran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg></button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="shell.js"></script>
+<script src="bracket-data.js"></script>
+<script src="bracket.js"></script>
+</body>
+</html>

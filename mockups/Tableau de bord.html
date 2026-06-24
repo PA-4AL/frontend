@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PA Tournament — Tableau de bord</title>
+<link rel="stylesheet" href="pa.css" />
+<style>
+  .page-head { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:28px; flex-wrap:wrap; }
+  .page-title { font-family:var(--font-display); font-weight:900; font-size:40px; text-transform:uppercase; }
+  .page-sub { color:var(--muted-foreground); font-size:14px; margin-top:4px; }
+
+  .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:28px; }
+  .kpi { padding:22px; position:relative; overflow:hidden; }
+  .kpi .k-label { font-size:13px; color:var(--muted-foreground); font-weight:500; display:flex; align-items:center; gap:8px; }
+  .kpi .k-icon { width:34px; height:34px; border-radius:var(--radius-md); display:grid; place-items:center; }
+  .kpi .k-icon svg { width:18px; height:18px; }
+  .kpi .k-value { font-family:var(--font-display); font-weight:900; font-size:44px; line-height:1; margin-top:14px; }
+  .kpi .k-foot { font-family:var(--font-mono); font-size:12px; margin-top:10px; display:flex; align-items:center; gap:6px; }
+  .k-up { color:var(--pa-live-dark); } .dark .k-up { color:var(--pa-live); }
+  .k-down { color:var(--destructive); }
+
+  .grid-2 { display:grid; grid-template-columns:1.6fr 1fr; gap:18px; align-items:start; }
+  .panel-head { display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--border); }
+  .panel-title { font-family:var(--font-display); font-weight:900; font-size:20px; text-transform:uppercase; letter-spacing:.01em; }
+
+  table.t-list { width:100%; border-collapse:collapse; }
+  .t-list th { font-family:var(--font-mono); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted-foreground); text-align:left; padding:12px 22px; border-bottom:1px solid var(--border); }
+  .t-list td { padding:14px 22px; border-bottom:1px solid var(--border); font-size:14px; vertical-align:middle; }
+  .t-list tr:last-child td { border-bottom:none; }
+  .t-list tbody tr { cursor:pointer; transition:background .12s ease; }
+  .t-list tbody tr:hover { background:var(--muted); }
+  .t-name { font-weight:600; }
+  .t-meta { font-family:var(--font-mono); font-size:12px; color:var(--muted-foreground); margin-top:2px; }
+  .t-num { font-family:var(--font-mono); font-weight:700; }
+
+  .feed { padding:8px 0; }
+  .feed-item { display:flex; gap:14px; padding:12px 22px; }
+  .feed-dot { width:34px; height:34px; border-radius:var(--radius-full); flex:none; display:grid; place-items:center; }
+  .feed-dot svg { width:16px; height:16px; }
+  .feed-body { font-size:13.5px; line-height:1.45; }
+  .feed-body b { font-weight:600; }
+  .feed-time { font-family:var(--font-mono); font-size:11px; color:var(--muted-foreground); margin-top:3px; }
+
+  .hidden { display:none; }
+  @media (max-width:1080px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} .grid-2{grid-template-columns:1fr;} }
+  @media (max-width:680px){ .kpi-grid{grid-template-columns:1fr;} .app-content{padding:18px 14px;} .page-title{font-size:30px;} .hide-sm{display:none;} }
+</style>
+</head>
+<body class="dark">
+<div class="app-shell">
+  <!-- SIDEBAR (placeholder, injecté) -->
+  <div id="shell-sidebar"></div>
+
+  <div class="app-main">
+    <header class="topnav">
+      <button class="topnav-icon hide-sm" id="mobileMenu" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+      <nav class="breadcrumbs">
+        <a href="#">Admin</a><span class="sep"></span>
+        <span class="crumb current">Tableau de bord</span>
+      </nav>
+      <div class="spacer"></div>
+      <div class="hide-sm" style="display:flex; align-items:center; gap:8px; width:260px; height:36px; padding:0 12px; border-radius:var(--radius-md); background:var(--muted);">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted-foreground)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <span style="color:var(--muted-foreground); font-size:14px;">Rechercher un tournoi…</span>
+      </div>
+      <button class="topnav-icon" id="themeToggle" aria-label="Thème">
+        <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="iconSun" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+      <button class="topnav-icon" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="notif-dot"></span></button>
+      <span class="avatar avatar-sm" style="background:var(--pa-accent)">LM</span>
+    </header>
+
+    <main class="app-content" style="max-width:1280px; margin:0 auto; width:100%;">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Tableau de bord</h1>
+          <p class="page-sub">Bonjour Léa — voici l'état de vos tournois aujourd'hui, mardi 9 juin.</p>
+        </div>
+        <a class="btn btn-primary btn-h10" href="Détail tournoi.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Créer un tournoi</a>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="card kpi">
+          <div class="k-label"><span class="k-icon" style="background:rgba(20,55,217,.12); color:var(--pa-primary-light)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"></path><path d="M6 9a6 6 0 0 0 12 0"></path><path d="M9 21h6"></path><path d="M12 15v6"></path></svg></span>Tournois actifs</div>
+          <div class="k-value">12</div>
+          <div class="k-foot k-up"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>+3 cette semaine</div>
+        </div>
+        <div class="card kpi">
+          <div class="k-label"><span class="k-icon" style="background:rgba(0,230,118,.12); color:var(--pa-live-dark)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg></span>Matchs en direct</div>
+          <div class="k-value" style="color:var(--pa-live-dark)">5</div>
+          <div class="k-foot k-up"><span class="status-badge sb-live" style="height:20px"><span class="dot live"></span>Live</span></div>
+        </div>
+        <div class="card kpi">
+          <div class="k-label"><span class="k-icon" style="background:rgba(255,92,40,.12); color:var(--pa-accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path></svg></span>Participants</div>
+          <div class="k-value">1 284</div>
+          <div class="k-foot k-up"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>+128 ce mois</div>
+        </div>
+        <div class="card kpi">
+          <div class="k-label"><span class="k-icon" style="background:rgba(245,158,11,.14); color:var(--status-warning)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></span>En attente</div>
+          <div class="k-value">7</div>
+          <div class="k-foot" style="color:var(--muted-foreground)">Validations à traiter</div>
+        </div>
+      </div>
+
+      <!-- 2 cols -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="panel-head">
+            <span class="panel-title">Tournois</span>
+            <div class="tabs" style="height:32px">
+              <button class="tab is-active">Tous</button>
+              <button class="tab">Live</button>
+              <button class="tab">À venir</button>
+            </div>
+          </div>
+          <table class="t-list">
+            <thead><tr><th>Tournoi</th><th>Format</th><th class="hide-sm">Participants</th><th>Statut</th></tr></thead>
+            <tbody>
+              <tr onclick="location.href='Détail tournoi.html'">
+                <td><div class="t-name">APEX Invitational 2026</div><div class="t-meta">#APX-2026 · démarré 14:00</div></td>
+                <td><span class="fmt-badge">Single Elim.</span></td>
+                <td class="hide-sm"><span class="t-num">64</span> / 64</td>
+                <td><span class="status-badge sb-live"><span class="dot live"></span>Live</span></td>
+              </tr>
+              <tr onclick="location.href='Détail tournoi.html'">
+                <td><div class="t-name">Winter Clash · Saison 4</div><div class="t-meta">#WC-S4 · démarré 12:30</div></td>
+                <td><span class="fmt-badge">Double Elim.</span></td>
+                <td class="hide-sm"><span class="t-num">32</span> / 32</td>
+                <td><span class="status-badge sb-live"><span class="dot live"></span>Live</span></td>
+              </tr>
+              <tr onclick="location.href='Détail tournoi.html'">
+                <td><div class="t-name">Rookie Cup #18</div><div class="t-meta">#RC-18 · 10 juin 18:00</div></td>
+                <td><span class="fmt-badge">Round Robin</span></td>
+                <td class="hide-sm"><span class="t-num">16</span> / 24</td>
+                <td><span class="status-badge sb-upcoming"><span class="dot" style="background:var(--status-warning)"></span>À venir</span></td>
+              </tr>
+              <tr onclick="location.href='Détail tournoi.html'">
+                <td><div class="t-name">Spring Masters Qualif.</div><div class="t-meta">#SMQ · 12 juin 20:00</div></td>
+                <td><span class="fmt-badge">Single Elim.</span></td>
+                <td class="hide-sm"><span class="t-num">48</span> / 128</td>
+                <td><span class="status-badge sb-upcoming"><span class="dot" style="background:var(--status-warning)"></span>À venir</span></td>
+              </tr>
+              <tr onclick="location.href='Détail tournoi.html'">
+                <td><div class="t-name">Pro League — Finale</div><div class="t-meta">#PL-F · 2 juin</div></td>
+                <td><span class="fmt-badge">Double Elim.</span></td>
+                <td class="hide-sm"><span class="t-num">8</span> / 8</td>
+                <td><span class="status-badge sb-finished">Terminé</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="panel-head"><span class="panel-title">Activité</span><button class="btn btn-ghost btn-h8" style="color:var(--muted-foreground)">Tout voir</button></div>
+          <div class="feed">
+            <div class="feed-item">
+              <span class="feed-dot" style="background:rgba(0,230,118,.12); color:var(--pa-live-dark)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              <div class="feed-body"><b>Team Nebula</b> remporte le quart de finale <span class="font-mono">2–1</span> contre Vortex.<div class="feed-time">Il y a 4 min · APEX Invitational</div></div>
+            </div>
+            <div class="feed-item">
+              <span class="feed-dot" style="background:rgba(255,92,40,.12); color:var(--pa-accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg></span>
+              <div class="feed-body">Le match <b class="font-mono">#A3F9</b> passe en direct.<div class="feed-time">Il y a 12 min · Winter Clash</div></div>
+            </div>
+            <div class="feed-item">
+              <span class="feed-dot" style="background:rgba(20,55,217,.12); color:var(--pa-primary-light)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg></span>
+              <div class="feed-body"><b>14 nouveaux participants</b> inscrits sur Spring Masters Qualif.<div class="feed-time">Il y a 38 min</div></div>
+            </div>
+            <div class="feed-item">
+              <span class="feed-dot" style="background:rgba(245,158,11,.14); color:var(--status-warning)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
+              <div class="feed-body"><b>Réclamation</b> sur le score du match <b class="font-mono">#B7C2</b> à arbitrer.<div class="feed-time">Il y a 1 h · Rookie Cup #18</div></div>
+            </div>
+            <div class="feed-item">
+              <span class="feed-dot" style="background:var(--muted); color:var(--muted-foreground)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg></span>
+              <div class="feed-body"><b>Pro League — Finale</b> terminée. Champion : <b>Apex Predators</b>.<div class="feed-time">Il y a 6 j</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="height:30px"></div>
+    </main>
+  </div>
+</div>
+
+<script src="shell.js"></script>
+<script>initShell('dashboard');</script>
+</body>
+</html>

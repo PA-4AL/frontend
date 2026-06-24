@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PA Tournament — Bibliothèque de composants</title>
+<link rel="stylesheet" href="pa.css" />
+<style>
+  /* ----- Page vitrine spécifique ----- */
+  .doc-section { margin-bottom: 56px; scroll-margin-top: 80px; }
+  .doc-h {
+    font-family: var(--font-display); font-weight: 900;
+    font-size: 32px; text-transform: uppercase; letter-spacing: .01em;
+    display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px;
+  }
+  .doc-h .idx { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--pa-primary); }
+  .dark .doc-h .idx { color: var(--pa-primary-light); }
+  .doc-sub { color: var(--muted-foreground); font-size: 14px; margin-bottom: 24px; max-width: 70ch; }
+  .doc-block { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-2xl); padding: 28px; box-shadow: var(--shadow-sm); }
+  .doc-row { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; }
+  .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px; }
+  .doc-label { font-family: var(--font-mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted-foreground); margin-bottom: 12px; }
+  .doc-cell { display: flex; flex-direction: column; gap: 12px; }
+  .stack { display: flex; flex-direction: column; gap: 14px; }
+  .divline { height: 1px; background: var(--border); margin: 28px 0; border: none; }
+
+  /* Typo specimen */
+  .type-spec { display: flex; flex-direction: column; gap: 20px; }
+  .type-row { display: flex; align-items: baseline; gap: 20px; border-bottom: 1px solid var(--border); padding-bottom: 18px; }
+  .type-row:last-child { border-bottom: none; }
+  .type-meta { width: 180px; flex: none; }
+  .type-meta .t1 { font-family: var(--font-mono); font-size: 12px; font-weight: 700; }
+  .type-meta .t2 { font-family: var(--font-mono); font-size: 11px; color: var(--muted-foreground); }
+
+  /* Colors */
+  .swatch { border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border); }
+  .swatch .chip { height: 64px; }
+  .swatch .meta { padding: 10px 12px; }
+  .swatch .meta .nm { font-size: 13px; font-weight: 600; }
+  .swatch .meta .hx { font-family: var(--font-mono); font-size: 11px; color: var(--muted-foreground); }
+  .scale-row { display: flex; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border); }
+  .scale-row .seg { flex: 1; height: 56px; display: flex; align-items: flex-end; padding: 6px; }
+  .scale-row .seg span { font-family: var(--font-mono); font-size: 10px; font-weight: 700; }
+
+  .menu-anchor { position: relative; }
+  .hidden { display: none; }
+
+  @media (max-width: 760px) {
+    .app-content { padding: 20px 16px; }
+    .doc-block { padding: 18px; }
+    .type-meta { width: 110px; }
+    .type-row { flex-direction: column; gap: 8px; }
+  }
+</style>
+</head>
+<body class="dark">
+
+<div class="app-shell">
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="mark">PA</div>
+      <div class="word">TOURNAMENT</div>
+    </div>
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Replier la sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <nav class="sidebar-nav">
+      <a class="nav-item is-active" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+        <span class="label">Tableau de bord</span>
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"></path><path d="M6 9a6 6 0 0 0 12 0"></path><path d="M9 21h6"></path><path d="M12 15v6"></path></svg>
+        <span class="label">Tournois</span>
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <span class="label">Participants</span>
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        <span class="label">Validations</span>
+        <span class="nav-badge">7</span>
+      </a>
+      <div class="sidebar-section">Système</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg>
+        <span class="label">Admin</span>
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span class="label">Paramètres</span>
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="nav-item" href="#">
+        <span class="avatar avatar-sm" style="background:var(--pa-accent)">LM</span>
+        <span class="label">Léa Moreau</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="app-main">
+    <!-- TOPNAV -->
+    <header class="topnav">
+      <nav class="breadcrumbs">
+        <a href="#">Admin</a>
+        <span class="sep"></span>
+        <a href="#">Design</a>
+        <span class="sep"></span>
+        <span class="crumb current">Bibliothèque de composants</span>
+      </nav>
+      <div class="spacer"></div>
+      <button class="topnav-icon" id="themeToggle" aria-label="Basculer le thème" title="Thème clair / sombre">
+        <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="iconSun" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+      <button class="topnav-icon" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <span class="notif-dot"></span>
+      </button>
+      <span class="avatar avatar-sm" style="background:var(--pa-accent)">LM</span>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="app-content" style="max-width:1180px; margin:0 auto; width:100%;">
+      <div style="margin-bottom:40px;">
+        <div class="status-badge sb-live" style="margin-bottom:16px;"><span class="dot live"></span>Design system v1.0</div>
+        <h1 class="font-display" style="font-size:48px; text-transform:uppercase;">Bibliothèque de composants</h1>
+        <p class="doc-sub" style="font-size:16px; margin-top:8px;">Tous les composants UI et métier, leurs variantes et leurs états — strictement dérivés des tokens PA Tournament. Bascule clair / sombre via l'icône en haut à droite.</p>
+      </div>
+
+      <!-- 1. TYPOGRAPHIE -->
+      <section class="doc-section">
+        <h2 class="doc-h"><span class="idx">01</span>Typographie</h2>
+        <p class="doc-sub">Barlow Condensed Black pour titres &amp; scores · Inter pour l'UI · JetBrains Mono pour les données.</p>
+        <div class="doc-block type-spec">
+          <div class="type-row">
+            <div class="type-meta"><div class="t1">Display / 48</div><div class="t2">Barlow Condensed 900</div></div>
+            <div class="font-display" style="font-size:48px; text-transform:uppercase;">Apex Invitational</div>
+          </div>
+          <div class="type-row">
+            <div class="type-meta"><div class="t1">Display / 32</div><div class="t2">Barlow Condensed 900</div></div>
+            <div class="font-display" style="font-size:32px; text-transform:uppercase;">Quart de finale</div>
+          </div>
+          <div class="type-row">
+            <div class="type-meta"><div class="t1">Body / 16</div><div class="t2">Inter 400–700</div></div>
+            <div style="font-size:16px;">Gérez vos tournois, brackets et participants — <strong>interface claire et réactive</strong>.</div>
+          </div>
+          <div class="type-row">
+            <div class="type-meta"><div class="t1">Body / 14</div><div class="t2">Inter 500</div></div>
+            <div style="font-size:14px; font-weight:500;">Texte de bouton, input, libellés de navigation.</div>
+          </div>
+          <div class="type-row">
+            <div class="type-meta"><div class="t1">Mono / 14</div><div class="t2">JetBrains Mono 700</div></div>
+            <div class="font-mono" style="font-size:18px; font-weight:700;">2 — 1 · MATCH #A3F9 · 14:32:08</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. COULEURS -->
+      <section class="doc-section">
+        <h2 class="doc-h"><span class="idx">02</span>Couleurs</h2>
+        <p class="doc-sub">Bleu dominant, orange pour les CTA, vert pour le direct. Nuanciers complets + surfaces clair/sombre.</p>
+        <div class="doc-block">
+          <div class="doc-label">Couleurs de marque</div>
+          <div class="doc-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));">
+            <div class="swatch"><div class="chip" style="background:#1437D9"></div><div class="meta"><div class="nm">Primary</div><div class="hx">#1437D9</div></div></div>
+            <div class="swatch"><div class="chip" style="background:#FF5C28"></div><div class="meta"><div class="nm">Accent</div><div class="hx">#FF5C28</div></div></div>
+            <div class="swatch"><div class="chip" style="background:#00E676"></div><div class="meta"><div class="nm">Live</div><div class="hx">#00E676</div></div></div>
+          </div>
+          <hr class="divline" />
+          <div class="doc-label">Nuanciers</div>
+          <div class="stack">
+            <div>
+              <div class="font-mono" style="font-size:11px; margin-bottom:6px; color:var(--muted-foreground)">PRIMARY</div>
+              <div class="scale-row">
+                <div class="seg" style="background:#0E27A8"><span style="color:#fff">0E27A8</span></div>
+                <div class="seg" style="background:#1437D9"><span style="color:#fff">1437D9</span></div>
+                <div class="seg" style="background:#3B5BFF"><span style="color:#fff">3B5BFF</span></div>
+                <div class="seg" style="background:#6B86FF"><span style="color:#fff">6B86FF</span></div>
+                <div class="seg" style="background:#C7D0FF"><span style="color:#1a1a1a">C7D0FF</span></div>
+              </div>
+            </div>
+            <div>
+              <div class="font-mono" style="font-size:11px; margin-bottom:6px; color:var(--muted-foreground)">ACCENT</div>
+              <div class="scale-row">
+                <div class="seg" style="background:#C43A10"><span style="color:#fff">C43A10</span></div>
+                <div class="seg" style="background:#FF5C28"><span style="color:#fff">FF5C28</span></div>
+                <div class="seg" style="background:#FF7A4D"><span style="color:#fff">FF7A4D</span></div>
+                <div class="seg" style="background:#FFB099"><span style="color:#1a1a1a">FFB099</span></div>
+                <div class="seg" style="background:#FFE6DC"><span style="color:#1a1a1a">FFE6DC</span></div>
+              </div>
+            </div>
+            <div>
+              <div class="font-mono" style="font-size:11px; margin-bottom:6px; color:var(--muted-foreground)">LIVE</div>
+              <div class="scale-row">
+                <div class="seg" style="background:#00A854"><span style="color:#fff">00A854</span></div>
+                <div class="seg" style="background:#00E676"><span style="color:#0a3d22">00E676</span></div>
+                <div class="seg" style="background:#4DEFAA"><span style="color:#0a3d22">4DEFAA</span></div>
+                <div class="seg" style="background:#A0F7D2"><span style="color:#0a3d22">A0F7D2</span></div>
+                <div class="seg" style="background:#D4FBF0"><span style="color:#0a3d22">D4FBF0</span></div>
+              </div>
+            </div>
+          </div>
+          <hr class="divline" />
+          <div class="doc-label">Statuts &amp; graphiques</div>
+          <div class="doc-grid" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr));">
+            <div class="swatch"><div class="chip" style="background:#F59E0B; height:48px"></div><div class="meta"><div class="nm">Warning</div><div class="hx">#F59E0B</div></div></div>
+            <div class="swatch"><div class="chip" style="background:#22C55E; height:48px"></div><div class="meta"><div class="nm">Success</div><div class="hx">#22C55E</div></div></div>
+            <div class="swatch"><div class="chip" style="background:#3B82F6; height:48px"></div><div class="meta"><div class="nm">Info</div><div class="hx">#3B82F6</div></div></div>
+            <div class="swatch"><div class="chip" style="background:#EF4444; height:48px"></div><div class="meta"><div class="nm">Destructive</div><div class="hx">#EF4444</div></div></div>
+            <div class="swatch"><div class="chip" style="background:#A855F7; height:48px"></div><div class="meta"><div class="nm">Chart 4</div><div class="hx">#A855F7</div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. BUTTON -->
+      <section class="doc-section">
+        <h2 class="doc-h"><span class="idx">03</span>Button</h2>
+        <p class="doc-sub">6 variantes, 4 tailles (32 / 36 / 40 / icon) et états hover · focus · disabled.</p>
+        <div class="doc-block">
+          <div class="doc-label">Variantes</div>
+          <div class="doc-row">
+            <button class="btn btn-default">Default</button>
+            <button class="btn btn-secondary">Secondary</button>
+            <button class="btn btn-destructive">Destructive</button>
+            <button class="btn btn-outline">Outline</button>
+            <button class="btn btn-ghost">Ghost</button>
+            <button class="btn btn-link">Link</button>
+          </div>
+          <hr class="divline" />
+          <div class="doc-label">Marque — CTA</div>
+          <div class="doc-row">
+            <button class="btn btn-primary">Créer un tournoi</button>
+            <button class="btn btn-accent">S'inscrire maintenant</button>
+            <button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Nouveau</button>
+          </div>
+          <hr class="divline" />
+          <div class="doc-label">Tailles</div>
+          <div class="doc-row">
+            <button class="btn btn-default btn-h8">h-8 · 32px</button>
+            <button class="btn btn-default btn-h9">h-9 · 36px</button>
+            <button class="btn btn-default btn-h10">h-10 · 40px</button>
+            <button class="btn btn-default btn-icon" aria-label="icône"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+          </div>
+          <hr class="divline" />
+          <div class="doc-label">États</div>
+          <div class="doc-row">
+            <button class="btn btn-default">Default</button>
+            <button class="btn btn-default" style="background:color-mix(in srgb, var(--primary) 88%, var(--background))">Hover</button>
+            <button class="btn btn-default" style="box-shadow:0 0 0 3px var(--ring)">Focus</button>
+            <button class="btn btn-default is-disabled">Disabled</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. FORM CONTROLS -->
+      <section class="doc-section">
+        <h2 class="doc-h"><span class="idx">04</span>Champs de formulaire</h2>
+        <p class="doc-sub">Input, Textarea, Select avec leurs états default · filled · focus · error · disabled.</p>
+        <div class="doc-block">
+          <div class="doc-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:24px;">
+            <div class="doc-cell"><span class="field-label">Default</span><input class="input" placeholder="Nom du tournoi" /></div>
+            <div class="doc-cell"><span class="field-label">Filled</span><input class="input" value="APEX Invitational 2026" /></div>
+            <div class="doc-cell"><span class="field-label">Focus (ring 3px)</span><input class="input is-focus" value="Focus actif" /></div>
+            <div class="doc-cell"><span class="field-label">Error</span><input class="input is-error" value="aa" /><span class="field-hint is-error">Minimum 3 caractères.</span></div>
+            <div class="doc-cell"><span class="field-label">Disabled</span><input class="input is-disabled" value="Verrouillé" /></div>
+            <div class="doc-cell"><span class="field-label">Select</span>
+              <div class="menu-anchor" data-select>
+                <button class="select-trigger is-placeholder" data-select-trigger>
+                  <span data-select-value>Choisir un format</span>
+                  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="select-menu hidden" data-select-menu>
+                  <div class="select-option" data-val="Single élimination">Single élimination</div>
+                  <div class="select-option" data-val="Double élimination">Double élimination</div>
+                  <div class="select-option" data-val="Round Robin">Round Robin</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <hr class="divline" />
+          <div class="doc-grid" style="grid-template-columns:1fr 1fr; gap:24px;">
+            <div class="doc-cell"><span class="field-label">Textarea</span><textarea class="textarea" placeholder="Règlement du tournoi, format des matchs, conditions de participation…"></textarea></div>
+            <div class="doc-cell"><span class="field-label">Textarea — Focus</span><textarea class="textarea is-focus">Best of 3 en phase de poules, Best of 5 en finale.</textarea></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. CHECKBOX / SWITCH / PROGRESS -->
+      <section class="doc-section">
+        <h2 class="doc-h"><span class="idx">05</span>Sélection &amp; progression</h2>
+        <p class="doc-sub">Checkbox (uncheck · checked · indeterminate · disabled), Switch et Progress.</p>
+        <div class="doc-block">
+          <div class="doc-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">
+            <div class="doc-cell">
+              <div class="doc-label">Checkbox</div>
+              <label class="checkbox" data-checkbox><span class="box"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg><svg class="minus" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>Uncheck</label>
+              <label class="checkbox is-checked" data-checkbox><span class="box"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg><svg class="minus" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>Checked</label>
+              <label class="checkbox is-indeterminate"><span class="box"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg><svg class="minus" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>Indeterminate</label>
+              <label class="checkbox is-checked is-disabled"><span class="box"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg><svg class="minus" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>Disabled</label>
+            </div>
+            <div class="doc-cell">
+              <div class="doc-label">Switch</div>
+              <label class="checkbox" style="gap:12px"><span class="switch" data-switch><span class="thumb"></span></span>OFF</label>
+              <label class="checkbox" style="gap:12px"><span class="switch is-on" data-switch><span class="thumb"></span></span>ON</label>
+              <label class="checkbox" style="gap:12px"><span class="switch is-on is-focus"><span class="thumb"></span></span>Focus ON</label>
+              <label class="checkbox" style="gap:12px"><span class="switch is-on is-disabled"><span class="thumb"></span></span>Disabled</label>
+            </div>
+            <div class="doc-cell" style="min-width:220px;">
+              <div class="doc-label">Progress</div>
+              <div class="stack" style="gap:18px; width:100%;">
+                <div><div class="progress"><div class="bar" style="width:25%"></div></div><div class="font-mono" style="font-size:11px; margin-top:6px; color:var(--muted-foreground)">25%</div></div>
+                <div><div class="progress"><div class="bar" style="width:60%"></div></div><div class="font-mono" style="font-size:11px; margin-top:6px; color:var(--muted-foreground)">60%</div></div>
+                <div><div class="progress"><div class="bar" style="width:100%; background:var(--pa-live)"></div></div><div class="font-mono" style="font-size:11px; margin-top:6px; color:var(--muted-foreground)">100% · complet</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. AVATAR + TABS -->
+      <section class="doc-section">
+        <h2 class="doc-h"><span class="idx">06</span>Avatar &amp; Tabs</h2>
+        <p class="doc-sub">Avatar (image, fallback initiales, ring, group) et Tabs (2 / 3 items, icônes, états).</p>
+        <div class="doc-block">
+          <div class="doc-label">Avatar</div>
+          <div class="doc-row" style="gap:28px;">
+            <span class="avatar avatar-sm">JD</span>
+            <span class="avatar">MK</span>
+            <span class="avatar avatar-lg" style="background:var(--pa-accent)">AL</span>
+            <span class="avatar ring">VP</span>
+            <span class="avatar"><img src="https://i.pravatar.cc/120?img=12" alt="" /></span>
+          </div>
+          <div style="margin-top:24px;">
+            <div class="doc-label">Avatar group</div>
+            <div class="avatar-group">
+              <span class="avatar">JD</span>
+              <span class="avatar" style="background:var(--pa-accent)">MK</span>
+              <span class="avatar" style="background:var(--pa-live-dark)">AL</span>
+              <span class="more">+3</span>
+            </div>
+          </div>
+          <hr class="divline" />
+          <div class="doc-label">Tabs</div>
+          <div class="doc-row" style="gap:28px; align-items:flex-start;">
+            <div class="tabs">
+              <button class="tab is-active">Vue d'ensemble</button>
+              <button class="tab">Matchs</button>
+            </div>
+            <div class="tabs">
+              <button class="tab is-active">Bracket</button>
+              <button class="tab">Équipes</button>
+              <button class="tab is-disabled">Stats</button>
+            </div>
+            <div class="tabs">
+              <button class="tab is-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>Stats</button>
+              <button class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>Historique</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. BADGE -->
+      <section class="doc-section">
+        <h2 class="doc-h"><span class="idx">07</span>Badge</h2>
+        <p class="doc-sub">Default · Secondary · Destructive · Outline.</p>
+        <div class="doc-block">
+          <div class="doc-row">
+            <span class="badge badge-default">Publié</span>
+            <span class="badge badge-secondary">Brouillon</span>
+            <span class="badge badge-destructive">Erreur</span>
+            <span class="badge badge-outline font-mono">v2.0.1</span>
+            <span class="badge badge-outline">New</span>
+            <span class="badge badge-secondary">Beta</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. COMPOSANTS MÉTIER -->
+      <section class="doc-section">
+        <h2 class="doc-h"><span class="idx">08</span>Composants métier</h2>
+        <p class="doc-sub">Statuts de tournoi, de match, de participant et badges de format.</p>
+        <div class="doc-block">
+          <div class="doc-label">Statut de tournoi</div>
+          <div class="doc-row">
+            <span class="status-badge sb-live"><span class="dot live"></span>Live</span>
+            <span class="status-badge sb-upcoming"><span class="dot" style="background:var(--status-warning)"></span>Upcoming</span>
+            <span class="status-badge sb-finished">Terminé</span>
+            <span class="status-badge sb-cancelled">Annulé</span>
+          </div>
+          <hr class="divline" />
+          <div class="doc-label">Statut de match</div>
+          <div class="doc-row">
+            <span class="status-badge sb-live"><span class="dot live"></span>Live</span>
+            <span class="status-badge sb-upcoming"><span class="dot" style="background:var(--status-warning)"></span>Planifié</span>
+            <span class="status-badge sb-finished">Done</span>
+          </div>
+          <hr class="divline" />
+          <div class="doc-label">Statut de participant</div>
+          <div class="doc-row">
+            <span class="status-badge sb-confirmed"><span class="dot" style="background:var(--status-success)"></span>Confirmé</span>
+            <span class="status-badge sb-pending"><span class="dot" style="background:var(--status-warning)"></span>En attente</span>
+            <span class="status-badge sb-disqualified">Disqualifié</span>
+            <span class="status-badge sb-withdrawn">Retiré</span>
+          </div>
+          <hr class="divline" />
+          <div class="doc-label">Format</div>
+          <div class="doc-row">
+            <span class="fmt-badge">Single Elim.</span>
+            <span class="fmt-badge">Double Elim.</span>
+            <span class="fmt-badge">Round Robin</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. NAVIGATION -->
+      <section class="doc-section">
+        <h2 class="doc-h"><span class="idx">09</span>Navigation</h2>
+        <p class="doc-sub">La sidebar (encadrant cette page, repliable via le bouton ⟨), la TopNav sticky et les breadcrumbs sont démontrés en contexte autour de cette vitrine. Voici les états isolés.</p>
+        <div class="doc-block">
+          <div class="doc-label">Sidebar — items</div>
+          <div style="background:var(--sidebar); border-radius:var(--radius-lg); padding:14px; max-width:260px;">
+            <a class="nav-item is-active" href="#" style="margin-bottom:4px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+              <span class="label">Actif</span>
+            </a>
+            <a class="nav-item" href="#" style="margin-bottom:4px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"></path><path d="M6 9a6 6 0 0 0 12 0"></path><path d="M9 21h6"></path><path d="M12 15v6"></path></svg>
+              <span class="label">Défaut</span>
+            </a>
+            <a class="nav-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              <span class="label">Avec badge</span>
+              <span class="nav-badge">7</span>
+            </a>
+          </div>
+          <hr class="divline" />
+          <div class="doc-label">Breadcrumbs</div>
+          <nav class="breadcrumbs">
+            <a href="#">Admin</a><span class="sep"></span>
+            <a href="#">Tournois</a><span class="sep"></span>
+            <span class="crumb current">APEX Invitational 2026</span>
+          </nav>
+        </div>
+      </section>
+
+      <div style="height:40px;"></div>
+    </main>
+  </div>
+</div>
+
+<script>
+  // Thème
+  const root = document.body;
+  const tMoon = document.getElementById('iconMoon');
+  const tSun = document.getElementById('iconSun');
+  function syncTheme() {
+    const dark = root.classList.contains('dark');
+    tMoon.classList.toggle('hidden', dark);
+    tSun.classList.toggle('hidden', !dark);
+  }
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    root.classList.toggle('dark');
+    syncTheme();
+  });
+  syncTheme();
+
+  // Sidebar collapse
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  });
+
+  // Checkbox toggle
+  document.querySelectorAll('[data-checkbox]').forEach(cb => {
+    cb.addEventListener('click', e => { e.preventDefault(); cb.classList.toggle('is-checked'); });
+  });
+
+  // Switch toggle
+  document.querySelectorAll('[data-switch]').forEach(sw => {
+    sw.addEventListener('click', () => sw.classList.toggle('is-on'));
+  });
+
+  // Select
+  document.querySelectorAll('[data-select]').forEach(sel => {
+    const trigger = sel.querySelector('[data-select-trigger]');
+    const menu = sel.querySelector('[data-select-menu]');
+    const valEl = sel.querySelector('[data-select-value]');
+    trigger.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('[data-select-menu]').forEach(m => { if (m !== menu) m.classList.add('hidden'); });
+      menu.classList.toggle('hidden');
+    });
+    menu.querySelectorAll('.select-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        valEl.textContent = opt.dataset.val;
+        trigger.classList.remove('is-placeholder');
+        menu.querySelectorAll('.select-option').forEach(o => o.classList.remove('is-selected'));
+        opt.classList.add('is-selected');
+        menu.classList.add('hidden');
+      });
+    });
+  });
+  document.addEventListener('click', () => {
+    document.querySelectorAll('[data-select-menu]').forEach(m => m.classList.add('hidden'));
+  });
+</script>
+</body>
+</html>

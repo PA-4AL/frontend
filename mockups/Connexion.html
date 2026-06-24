@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PA Tournament — Connexion</title>
+<link rel="stylesheet" href="pa.css" />
+<style>
+  html, body { height: 100%; }
+  .auth { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 100vh; }
+
+  /* ---- Panneau marque (gauche) ---- */
+  .auth-brand {
+    position: relative; overflow: hidden;
+    background: var(--sidebar);
+    color: #fff;
+    padding: 48px 56px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+  }
+  .auth-brand::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(900px 500px at 12% 8%, rgba(20,55,217,.55), transparent 60%),
+      radial-gradient(700px 600px at 95% 100%, rgba(255,92,40,.32), transparent 55%);
+  }
+  .auth-grid-lines {
+    position: absolute; inset: 0; opacity: .5;
+    background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 85%);
+  }
+  .auth-brand > * { position: relative; z-index: 1; }
+  .brand-top { display: flex; align-items: center; gap: 14px; }
+  .brand-top .mark { width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--pa-primary); display: grid; place-items: center; font-family: var(--font-display); font-weight: 900; font-size: 20px; }
+  .brand-top .word { font-family: var(--font-display); font-weight: 900; font-size: 26px; letter-spacing: .02em; }
+
+  .brand-hero { max-width: 26ch; }
+  .brand-hero .kicker { display:inline-flex; align-items:center; gap:8px; font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing:.1em; text-transform: uppercase; color: var(--pa-live); margin-bottom: 22px; }
+  .brand-hero h1 { font-family: var(--font-display); font-weight: 900; font-size: 64px; line-height: .92; text-transform: uppercase; }
+  .brand-hero h1 .accent { color: var(--pa-accent); }
+  .brand-hero p { color: rgba(232,236,248,.7); font-size: 16px; margin-top: 18px; line-height: 1.55; }
+
+  .brand-stats { display: flex; gap: 40px; }
+  .brand-stats .s .v { font-family: var(--font-display); font-weight: 900; font-size: 40px; line-height: 1; }
+  .brand-stats .s .l { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: rgba(232,236,248,.55); margin-top: 6px; }
+
+  /* ---- Panneau formulaire (droite) ---- */
+  .auth-form-wrap { display: flex; align-items: center; justify-content: center; padding: 48px 24px; background: var(--background); }
+  .auth-card { width: 100%; max-width: 400px; }
+  .auth-mobile-logo { display: none; align-items: center; gap: 12px; justify-content: center; margin-bottom: 28px; }
+  .auth-mobile-logo .mark { width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--pa-primary); display: grid; place-items: center; font-family: var(--font-display); font-weight: 900; font-size: 17px; color:#fff; }
+  .auth-mobile-logo .word { font-family: var(--font-display); font-weight: 900; font-size: 22px; }
+
+  .auth-title { font-family: var(--font-display); font-weight: 900; font-size: 40px; text-transform: uppercase; line-height: 1; }
+  .auth-desc { color: var(--muted-foreground); font-size: 15px; margin-top: 10px; margin-bottom: 28px; }
+
+  .mode-switch { display: inline-flex; padding: 3px; gap: 4px; background: var(--muted); border-radius: var(--radius-md); margin-bottom: 28px; width: 100%; }
+  .mode-switch button { flex: 1; height: 38px; border: none; background: transparent; border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 14px; font-weight: 600; color: var(--muted-foreground); cursor: pointer; }
+  .mode-switch button.is-active { background: var(--card); color: var(--foreground); box-shadow: var(--shadow-sm); }
+
+  .oauth-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .oauth-btn { display: flex; align-items: center; justify-content: center; gap: 10px; height: 44px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--card); color: var(--foreground); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s; }
+  .oauth-btn:hover { background: var(--muted); }
+  .oauth-btn svg { width: 18px; height: 18px; }
+
+  .divider { display: flex; align-items: center; gap: 14px; margin: 24px 0; color: var(--muted-foreground); font-size: 12px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+  .form-fields { display: flex; flex-direction: column; gap: 18px; }
+  .input-icon { position: relative; }
+  .input-icon svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 17px; height: 17px; color: var(--muted-foreground); }
+  .input-icon .input { padding-left: 38px; height: 44px; }
+  .input-icon .eye { left: auto; right: 12px; cursor: pointer; }
+  .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .row-between .field-label { white-space: nowrap; }
+  .signup-only { display: none; }
+  body.mode-signup .signup-only { display: flex; }
+  body.mode-signup .login-only { display: none; }
+
+  .submit-btn { height: 46px; font-size: 15px; margin-top: 4px; }
+  .auth-foot { text-align: center; font-size: 13px; color: var(--muted-foreground); margin-top: 22px; }
+  .auth-foot a { color: var(--pa-primary); font-weight: 600; text-decoration: none; cursor: pointer; }
+  .dark .auth-foot a { color: var(--pa-primary-light); }
+
+  .theme-fab { position: fixed; top: 18px; right: 18px; z-index: 50; }
+
+  @media (max-width: 900px) {
+    .auth { grid-template-columns: 1fr; }
+    .auth-brand { display: none; }
+    .auth-mobile-logo { display: flex; }
+    .auth-form-wrap { padding: 32px 20px; align-items: flex-start; padding-top: 56px; }
+    .input-icon .input, .input { height: 48px; font-size: 16px; }
+    .oauth-btn { height: 48px; }
+  }
+</style>
+</head>
+<body class="dark mode-login">
+
+<button class="topnav-icon theme-fab" id="themeToggle" aria-label="Thème">
+  <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+  <svg id="iconSun" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+</button>
+
+<div class="auth">
+  <!-- ===== Panneau marque ===== -->
+  <div class="auth-brand">
+    <div class="auth-grid-lines"></div>
+    <div class="brand-top">
+      <div class="mark">PA</div>
+      <div class="word">TOURNAMENT</div>
+    </div>
+
+    <div class="brand-hero">
+      <span class="kicker"><span style="width:8px;height:8px;border-radius:50%;background:var(--pa-live);display:inline-block;"></span>Plateforme de tournois esport</span>
+      <h1>Organise.<br />Affronte.<br /><span class="accent">Domine.</span></h1>
+      <p>Crée tes brackets, gère tes équipes et suis chaque match en direct. La compétition commence ici.</p>
+    </div>
+
+    <div class="brand-stats">
+      <div class="s"><div class="v">2.4K</div><div class="l">Tournois</div></div>
+      <div class="s"><div class="v">58K</div><div class="l">Joueurs</div></div>
+      <div class="s"><div class="v">340</div><div class="l">Live ce mois</div></div>
+    </div>
+  </div>
+
+  <!-- ===== Panneau formulaire ===== -->
+  <div class="auth-form-wrap">
+    <div class="auth-card">
+      <div class="auth-mobile-logo">
+        <div class="mark">PA</div><div class="word">TOURNAMENT</div>
+      </div>
+
+      <h2 class="auth-title">
+        <span class="login-only">Connexion</span>
+        <span class="signup-only">Créer un compte</span>
+      </h2>
+      <p class="auth-desc">
+        <span class="login-only">Accède à ton espace et reprends la compétition.</span>
+        <span class="signup-only">Rejoins la communauté et lance ton premier tournoi.</span>
+      </p>
+
+      <div class="mode-switch">
+        <button id="btnLogin" class="is-active">Se connecter</button>
+        <button id="btnSignup">S'inscrire</button>
+      </div>
+
+      <div class="oauth-row">
+        <button class="oauth-btn">
+          <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38z"/></svg>
+          Google
+        </button>
+        <button class="oauth-btn">
+          <svg viewBox="0 0 24 24" fill="#5865F2"><path d="M20.32 4.37A19.8 19.8 0 0 0 15.45 3l-.24.5a18.3 18.3 0 0 1 4.3 1.34 16.6 16.6 0 0 0-15-.01A18.3 18.3 0 0 1 8.8 3.5L8.55 3a19.8 19.8 0 0 0-4.87 1.37C.6 9 .14 13.45.37 17.85a19.9 19.9 0 0 0 6.06 3.06l.5-.7a13 13 0 0 1-2.97-1.43l.73-.57a14.2 14.2 0 0 0 11.62 0l.73.57a13 13 0 0 1-2.98 1.43l.5.7a19.9 19.9 0 0 0 6.06-3.06c.3-5.1-.46-9.5-3.3-13.48zM8.5 15.33c-1.18 0-2.15-1.08-2.15-2.41 0-1.33.95-2.42 2.15-2.42s2.17 1.09 2.15 2.42c0 1.33-.96 2.41-2.15 2.41zm7 0c-1.18 0-2.15-1.08-2.15-2.41 0-1.33.95-2.42 2.15-2.42s2.16 1.09 2.15 2.42c0 1.33-.95 2.41-2.15 2.41z"/></svg>
+          Discord
+        </button>
+      </div>
+
+      <div class="divider">ou par e-mail</div>
+
+      <form class="form-fields" onsubmit="return false;">
+        <div class="signup-only" style="flex-direction:column; gap:8px;">
+          <label class="field-label" for="pseudo">Pseudo</label>
+          <div class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <input class="input" id="pseudo" placeholder="TonPseudo#1234" />
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <label class="field-label" for="email">Adresse e-mail</label>
+          <div class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 5L2 7"></path></svg>
+            <input class="input" id="email" type="email" placeholder="joueur@exemple.com" />
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div class="row-between">
+            <label class="field-label" for="pwd" style="margin:0;">Mot de passe</label>
+            <a class="btn-link login-only" style="font-size:13px;">Oublié ?</a>
+          </div>
+          <div class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <input class="input" id="pwd" type="password" placeholder="••••••••" />
+            <svg class="eye" id="eyeToggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </div>
+        </div>
+
+        <label class="checkbox login-only" data-checkbox style="font-size:13px; margin-top:2px;">
+          <span class="box"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg><svg class="minus" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
+          Rester connecté
+        </label>
+
+        <label class="checkbox signup-only" data-checkbox style="font-size:13px; margin-top:2px; align-items:flex-start;">
+          <span class="box" style="margin-top:1px;"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg><svg class="minus" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
+          <span>J'accepte les <a class="btn-link" style="font-size:13px;">conditions d'utilisation</a> et la politique de confidentialité.</span>
+        </label>
+
+        <button class="btn btn-primary submit-btn">
+          <span class="login-only">Se connecter</span>
+          <span class="signup-only">Créer mon compte</span>
+        </button>
+      </form>
+
+      <p class="auth-foot">
+        <span class="login-only">Pas encore de compte ? <a id="goSignup">Inscris-toi</a></span>
+        <span class="signup-only">Déjà inscrit ? <a id="goLogin">Connecte-toi</a></span>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const body = document.body;
+  // Thème
+  const tMoon = document.getElementById('iconMoon'), tSun = document.getElementById('iconSun');
+  function syncTheme(){ const d = body.classList.contains('dark'); tMoon.classList.toggle('hidden', d); tSun.classList.toggle('hidden', !d); }
+  document.getElementById('themeToggle').addEventListener('click', ()=>{ body.classList.toggle('dark'); syncTheme(); });
+  syncTheme();
+
+  // Mode connexion/inscription
+  function setMode(m){
+    body.classList.toggle('mode-signup', m==='signup');
+    body.classList.toggle('mode-login', m==='login');
+    document.getElementById('btnLogin').classList.toggle('is-active', m==='login');
+    document.getElementById('btnSignup').classList.toggle('is-active', m==='signup');
+  }
+  document.getElementById('btnLogin').onclick = ()=>setMode('login');
+  document.getElementById('btnSignup').onclick = ()=>setMode('signup');
+  document.getElementById('goSignup').onclick = ()=>setMode('signup');
+  document.getElementById('goLogin').onclick = ()=>setMode('login');
+
+  // Checkbox
+  document.querySelectorAll('[data-checkbox]').forEach(cb => cb.addEventListener('click', e=>{ e.preventDefault(); cb.classList.toggle('is-checked'); }));
+
+  // Toggle password
+  const pwd = document.getElementById('pwd');
+  document.getElementById('eyeToggle').addEventListener('click', ()=>{ pwd.type = pwd.type==='password' ? 'text' : 'password'; });
+</script>
+</body>
+</html>
