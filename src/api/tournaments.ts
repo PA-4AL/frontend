@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './client'
+import { apiGet, apiPost, v1 } from './client'
 import type {
   ActivityItem,
   BracketData,
@@ -10,23 +10,23 @@ import type {
 } from './types'
 
 export function fetchTournaments(): Promise<TournamentSummary[]> {
-  return apiGet('/api/tournaments')
+  return apiGet(v1('/tournaments'))
 }
 
 export function fetchTournament(id: string): Promise<TournamentDetail> {
-  return apiGet(`/api/tournaments/${id}`)
+  return apiGet(v1(`/tournaments/${id}`))
 }
 
 export function fetchBracket(tournamentId: string): Promise<BracketData> {
-  return apiGet(`/api/tournaments/${tournamentId}/bracket`)
+  return apiGet(v1(`/tournaments/${tournamentId}/bracket`))
 }
 
 export function fetchDashboardKpis(): Promise<DashboardKpis> {
-  return apiGet('/api/dashboard/kpis')
+  return apiGet(v1('/dashboard/kpis'))
 }
 
 export function fetchActivity(): Promise<ActivityItem[]> {
-  return apiGet('/api/dashboard/activity')
+  return apiGet(v1('/dashboard/activity'))
 }
 
 export interface GameSpec {
@@ -46,45 +46,45 @@ export interface CreateTournamentInput {
 }
 
 export function createTournament(input: CreateTournamentInput): Promise<TournamentSummary> {
-  return apiPost('/api/tournaments', input)
+  return apiPost(v1('/tournaments'), input)
 }
 
 export function generateBracket(tournamentId: string, format?: string): Promise<BracketData> {
-  return apiPost(`/api/tournaments/${tournamentId}/bracket/generate`, format ? { format } : {})
+  return apiPost(v1(`/tournaments/${tournamentId}/bracket/generate`), format ? { format } : {})
 }
 
 export function reportScore(matchId: string, scoreA: number, scoreB: number): Promise<BracketData> {
-  return apiPost(`/api/matches/${matchId}/score`, { scoreA, scoreB })
+  return apiPost(v1(`/matches/${matchId}/score`), { scoreA, scoreB })
 }
 
 export function fetchParticipants(tournamentId: string): Promise<Participant[]> {
-  return apiGet(`/api/tournaments/${tournamentId}/participants`)
+  return apiGet(v1(`/tournaments/${tournamentId}/participants`))
 }
 
 export function registerToTournament(tournamentId: string): Promise<Participant> {
-  return apiPost(`/api/tournaments/${tournamentId}/register`, {})
+  return apiPost(v1(`/tournaments/${tournamentId}/register`), {})
 }
 
 export function fetchPendingRegistrations(): Promise<PendingRegistration[]> {
-  return apiGet('/api/registrations/pending')
+  return apiGet(v1('/registrations/pending'))
 }
 
 export function confirmRegistration(registrationId: string): Promise<void> {
-  return apiPost(`/api/registrations/${registrationId}/confirm`, {})
+  return apiPost(v1(`/registrations/${registrationId}/confirm`), {})
 }
 
 export function rejectRegistration(registrationId: string): Promise<void> {
-  return apiPost(`/api/registrations/${registrationId}/reject`, {})
+  return apiPost(v1(`/registrations/${registrationId}/reject`), {})
 }
 
 export function addParticipant(tournamentId: string, name: string): Promise<Participant> {
-  return apiPost(`/api/tournaments/${tournamentId}/participants`, { name })
+  return apiPost(v1(`/tournaments/${tournamentId}/participants`), { name })
 }
 
 export function registerTeamToTournament(tournamentId: string, teamId: string): Promise<Participant> {
-  return apiPost(`/api/tournaments/${tournamentId}/register-team`, { teamId })
+  return apiPost(v1(`/tournaments/${tournamentId}/register-team`), { teamId })
 }
 
 export function setSeed(registrationId: string, seed: number | null): Promise<void> {
-  return apiPost(`/api/registrations/${registrationId}/seed`, { seed })
+  return apiPost(v1(`/registrations/${registrationId}/seed`), { seed })
 }
