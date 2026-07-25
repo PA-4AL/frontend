@@ -46,8 +46,14 @@ local à chaque page (`useState` + `useEffect`), il n'y a pas de cache partagé.
 - `src/api/` — `client.ts` fournit `apiGet/apiPost/apiPatch/apiDelete` : ils rafraîchissent
   le token (`updateToken(30)`) avant chaque appel, relancent un login si la session Keycloak
   est morte, et remontent le champ `message` des erreurs métier du backend. `tournaments.ts`
-  et `profile.ts` ne sont que des fonctions typées sur les routes `/api/…` du backend
+  et `profile.ts` ne sont que des fonctions typées sur les routes du backend
   Kotlin/Spring — pas de logique métier côté front.
+- **Version d'API choisie appel par appel** : `client.ts` exporte un helper par version
+  (`v1('/tournaments')` → `/api/v1/tournaments`) et les wrappers l'appliquent chacun.
+  Aucun chemin `/api/…` n'est écrit en dur ailleurs. Le jour où une route passe en v2,
+  seule sa ligne change — les autres continuent d'appeler la v1, volontairement.
+  Procédure et contrat complet : `backend/docs/API-VERSIONING.md` et
+  `backend/docs/ENDPOINTS.md`.
 - **Contrat d'API orienté affichage** : `src/api/types.ts` attend du backend des champs déjà
   formatés pour l'UI (`scheduleLabel`, `registeredLabel`, `checkInWindow`, `ActivityItem.html`,
   couleurs/codes d'équipe). Ajouter un champ affiché implique donc généralement une évolution
