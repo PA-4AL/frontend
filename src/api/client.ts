@@ -11,6 +11,14 @@ export function apiConfigured(): boolean {
   return API_URL !== ''
 }
 
+/* Versionnement de l'API — voir backend/docs/API-VERSIONING.md.
+   La version est choisie appel par appel : quand une route passe en v2, seule sa
+   ligne change (`v1(...)` → `v2(...)`), les autres continuent d'appeler la v1. */
+
+export const v1 = (path: string): string => `/api/v1${path}`
+
+// export const v2 = (path: string): string => `/api/v2${path}`   // à la première breaking change
+
 async function authHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (keycloak?.authenticated) {
