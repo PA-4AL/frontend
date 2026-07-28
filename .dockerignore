@@ -1,0 +1,18 @@
+# Contexte de build : on n'envoie au daemon que ce qui sert au `npm run build`.
+node_modules
+dist
+.git
+.gitignore
+.idea
+.claude
+.env
+.env.*
+!.env.example
+*.log
+coverage
+mockups
+docs
+tsconfig.tsbuildinfo
+Dockerfile
+.dockerignore
+README.md
