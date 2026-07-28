@@ -42,14 +42,15 @@ function initials(name: string): string {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(false)
+  // Sans Keycloak configuré (mode démo), l'app est prête dès le premier rendu :
+  // on l'initialise ici plutôt que par un setState synchrone dans l'effet.
+  const [ready, setReady] = useState(!keycloakEnabled || keycloak === null)
   const [user, setUser] = useState<AuthUser | null>(null)
 
   useEffect(() => {
     const kc = keycloak
     if (!keycloakEnabled || !kc) {
-      console.warn('VITE_KEYCLOAK_URL manquant : authentification indisponible.')
-      setReady(true)
+      console.warn('Keycloak non configuré (config.js / VITE_KEYCLOAK_URL) : authentification indisponible.')
       return
     }
     initKeycloak().then((authenticated) => {
