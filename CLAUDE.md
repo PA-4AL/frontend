@@ -13,9 +13,17 @@ npx tsc -b --force          # type-check seul (--force : contourne le cache incr
 docker build -t pa-frontend .   # build + nginx sur :8080 (Cloud Run)
 ```
 
-Il n'y a **ni tests ni linter** dans ce dépôt : la seule vérification automatisée est
-`tsc` (mode `strict` + `noUnusedLocals`/`noUnusedParameters`). Le `tsconfig.json` active
-`verbatimModuleSyntax`, donc tout import de type doit passer par `import type { … }`.
+Vérifications automatisées, toutes jouées par la CI et bloquantes avant merge :
+
+```bash
+npm run lint        # ESLint 9 (flat config) : typescript-eslint + react-hooks
+npm run typecheck   # tsc, mode strict + noUnusedLocals/noUnusedParameters
+npm test            # Vitest + jsdom (src/**/*.test.ts)
+npm run test:coverage
+```
+
+Le `tsconfig.json` active `verbatimModuleSyntax`, donc tout import de type doit passer
+par `import type { … }`.
 
 ## Configuration
 
@@ -28,8 +36,18 @@ de lancer `npm run dev`.
 > encore d'un « mode démo » avec `src/api/mock.ts` : ce fichier n'existe plus et il n'y a
 > plus aucun fallback de données. En cas d'échec API, les pages retombent sur un état vide.
 
-En build Docker, les variables `VITE_*` sont des `ARG` : elles sont figées au moment du
-build de l'image, pas lues au runtime.
+**La configuration est résolue au runtime, pas au build.** Le conteneur nginx écrit
+`/config.js` à son démarrage (`docker/40-app-config.sh`, à partir de `API_URL`,
+`KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`) et `src/config.ts` lit
+`window.__APP_CONFIG__` avec repli sur les `VITE_*` du `.env` en développement. La
+même image sert donc tous les environnements — ne pas réintroduire d'`ARG VITE_*`
+dans le Dockerfile.
+
+```bash
+docker run -p 8080:8080 -e API_URL=https://api.exemple.fr -e KEYCLOAK_URL=https://auth.exemple.fr pa-frontend
+```
+
+Déploiement, pipelines et images : `../infra/docs/` (`DEPLOY.md`, `CI-CD.md`, `DOCKER.md`).
 
 ## Architecture
 
