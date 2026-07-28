@@ -65,9 +65,9 @@ jobs:
         run: |
           URL=$(gcloud run services describe pa-prod-frontend \
             --region ${{ vars.GCP_REGION }} --format='value(status.url)')
-          echo "Test de $URL/healthz"
+          echo "Test de $URL/health"
           for i in $(seq 1 12); do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$URL/healthz" || true)
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$URL/health" || true)
             [ "$CODE" = "200" ] && echo "OK ($CODE)" && exit 0
             echo "tentative $i : $CODE"; sleep 5
           done
