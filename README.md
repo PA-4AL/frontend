@@ -1,5 +1,32 @@
 # PA Tournament — Frontend
 
+[![CI](https://github.com/PA-4AL/frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/PA-4AL/frontend/actions/workflows/ci.yml)
+
+**Déploiement et contribution** — flow git, pipelines et mise en production sont
+documentés dans le repo `infra` :
+[GIT-FLOW](https://github.com/PA-4AL/infra/blob/main/docs/GIT-FLOW.md) ·
+[CI-CD](https://github.com/PA-4AL/infra/blob/main/docs/CI-CD.md) ·
+[DEPLOY](https://github.com/PA-4AL/infra/blob/main/docs/DEPLOY.md) ·
+[DOCKER](https://github.com/PA-4AL/infra/blob/main/docs/DOCKER.md)
+
+## Qualité (jouée par la CI à chaque commit et chaque PR)
+
+```bash
+npm run lint        # ESLint 9
+npm run typecheck   # tsc
+npm test            # Vitest
+```
+
+## Image de production
+
+```bash
+docker build -t pa-frontend .
+docker run --rm -p 8080:8080 -e API_URL=http://localhost:8080 -e KEYCLOAK_URL=http://localhost:8081 pa-frontend
+```
+
+La configuration (URLs d'API et de Keycloak) est injectée **au démarrage du
+conteneur** dans `/config.js` : une seule image sert tous les environnements.
+
 SPA React (Vite + TypeScript) de la plateforme de gestion de tournois esport.
 Spécifications : [`docs/PA-Tournament-Specs.md`](docs/PA-Tournament-Specs.md) ·
 Maquettes HTML de référence : [`mockups/`](mockups/) (design system `pa.css`).

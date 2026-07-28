@@ -3,10 +3,11 @@
    Sans VITE_KEYCLOAK_URL, l'app fonctionne en mode démo sans auth réelle. */
 
 import Keycloak from 'keycloak-js'
+import { config } from '../config'
 
-const url: string = import.meta.env.VITE_KEYCLOAK_URL ?? ''
-const realm: string = import.meta.env.VITE_KEYCLOAK_REALM ?? 'pa-tournament'
-const clientId: string = import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? 'pa-frontend'
+const url: string = config.keycloakUrl
+const realm: string = config.keycloakRealm
+const clientId: string = config.keycloakClientId
 
 export const keycloakEnabled = url !== ''
 

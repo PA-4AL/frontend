@@ -3,8 +3,9 @@
    retombent sur les données de démonstration (mock.ts). */
 
 import { getToken, keycloak } from '../auth/keycloak'
+import { config } from '../config'
 
-const API_URL: string = import.meta.env.VITE_API_URL ?? ''
+const API_URL: string = config.apiUrl
 
 export function apiConfigured(): boolean {
   return API_URL !== ''
