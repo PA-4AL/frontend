@@ -11,6 +11,9 @@ const clientId: string = config.keycloakClientId
 
 export const keycloakEnabled = url !== ''
 
+/** URL du serveur d'identité, pour les messages d'erreur. */
+export const keycloakUrl = (): string => url
+
 export const keycloak: Keycloak | null = keycloakEnabled
   ? new Keycloak({ url, realm, clientId })
   : null

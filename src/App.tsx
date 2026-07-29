@@ -11,10 +11,37 @@ import { TeamsPage } from './pages/TeamsPage'
 import { TournamentDetailPage } from './pages/TournamentDetailPage'
 import { ValidationsPage } from './pages/ValidationsPage'
 
+/** Écran d'attente pendant l'initialisation de l'authentification. */
+function Chargement() {
+  return (
+    <div className="auth-splash">
+      <p>Chargement…</p>
+    </div>
+  )
+}
+
+/**
+ * Panne du serveur d'identité : on affiche la cause plutôt qu'une page vide.
+ * C'est le cas d'un Keycloak injoignable — certificat non encore délivré,
+ * service arrêté, mauvaise URL dans config.js.
+ */
+function PanneAuth({ message }: { message: string }) {
+  return (
+    <div className="auth-splash">
+      <h1>Connexion impossible</h1>
+      <p>{message}</p>
+      <button type="button" className="btn btn-primary" onClick={() => location.reload()}>
+        Réessayer
+      </button>
+    </div>
+  )
+}
+
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { ready, user } = useAuth()
+  const { ready, user, authError } = useAuth()
   const location = useLocation()
-  if (!ready) return null
+  if (!ready) return <Chargement />
+  if (authError) return <PanneAuth message={authError} />
   if (!user) return <Navigate to="/connexion" state={{ from: location }} replace />
   return children
 }
