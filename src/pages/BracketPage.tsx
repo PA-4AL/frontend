@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
-import { fetchBracket, fetchTournament, generateBracket, reportScore } from '../api/tournaments'
+import {
+  fetchBracket,
+  fetchTournament,
+  generateBracket,
+  reportScore,
+  swapBracketSlots,
+} from '../api/tournaments'
 import { peutDemarrerUnGlissement } from './bracketDrag'
+import { estReorganisable, memeEmplacement, prochaineAction, type Emplacement } from './bracketSwap'
 import type { BracketData, BracketMatch, BracketSlot, TournamentDetail } from '../api/types'
 import { Shell } from '../components/Shell'
 import { FmtBadge, StatusBadge } from '../components/ui'
@@ -10,10 +17,32 @@ import { IconDownload, IconFit, IconMinus, IconMove, IconPlus, IconTrophyCup } f
 const MIN_ZOOM = 0.4
 const MAX_ZOOM = 1.6
 
-function TeamRow({ t }: { t: BracketSlot }) {
+/**
+ * @param onPick clic en mode réorganisation ; absent hors de ce mode
+ * @param selected cet emplacement est celui qu'on est en train de déplacer
+ */
+function TeamRow({
+  t,
+  onPick,
+  selected,
+}: {
+  t: BracketSlot
+  onPick?: () => void
+  selected?: boolean
+}) {
+  // En réorganisation, la ligne devient cliquable ; le titre explique le geste,
+  // qui n'est pas devinable.
+  const interactif = onPick
+    ? {
+        onClick: onPick,
+        style: { cursor: 'pointer', outline: selected ? '2px solid var(--pa-primary, #1437D9)' : undefined },
+        title: selected ? 'Cliquer pour annuler' : 'Cliquer pour déplacer cette équipe',
+      }
+    : {}
+
   if (t.tbd) {
     return (
-      <div className="bm-team tbd">
+      <div className="bm-team tbd" {...interactif}>
         <span className="bm-seed">·</span>
         <span className="bm-av">?</span>
         <span className="bm-name">{t.name}</span>
@@ -24,7 +53,7 @@ function TeamRow({ t }: { t: BracketSlot }) {
   const played = t.score !== null && t.score !== undefined
   const cls = 'bm-team' + (t.win ? ' win' : played ? ' lose' : '')
   return (
-    <div className={cls}>
+    <div className={cls} {...interactif}>
       <span className="bm-seed">{t.seed ?? '·'}</span>
       <span className="bm-av" style={{ background: t.color ?? 'var(--muted)' }}>
         {t.code ?? '?'}
@@ -35,13 +64,33 @@ function TeamRow({ t }: { t: BracketSlot }) {
   )
 }
 
-function MatchCard({ m, onScore }: { m: BracketMatch; onScore?: (m: BracketMatch) => void }) {
+function MatchCard({
+  m,
+  onScore,
+  reorganisation,
+  selection,
+  onPick,
+}: {
+  m: BracketMatch
+  onScore?: (m: BracketMatch) => void
+  /** Mode réorganisation actif : les clics déplacent, ils ne saisissent plus. */
+  reorganisation?: boolean
+  selection?: Emplacement | null
+  onPick?: (emplacement: Emplacement, vide: boolean) => void
+}) {
+  const deplacable = reorganisation === true && estReorganisable(m)
   const scorable =
+    !reorganisation &&
     onScore !== undefined &&
     m.matchId !== undefined &&
     (m.status === 'scheduled' || m.status === 'live') &&
     !m.a.tbd &&
     !m.b.tbd
+
+  const pick = (slot: 1 | 2, vide: boolean) =>
+    deplacable && m.matchId !== undefined
+      ? () => onPick?.({ matchId: m.matchId as string, slot }, vide)
+      : undefined
   let head
   if (m.status === 'live') {
     head = (
@@ -84,8 +133,16 @@ function MatchCard({ m, onScore }: { m: BracketMatch; onScore?: (m: BracketMatch
         style={scorable ? { cursor: 'pointer' } : undefined}
       >
         {head}
-        <TeamRow t={m.a} />
-        <TeamRow t={m.b} />
+        <TeamRow
+          t={m.a}
+          onPick={pick(1, m.a.tbd === true)}
+          selected={memeEmplacement(selection ?? null, { matchId: m.matchId ?? '', slot: 1 })}
+        />
+        <TeamRow
+          t={m.b}
+          onPick={pick(2, m.b.tbd === true)}
+          selected={memeEmplacement(selection ?? null, { matchId: m.matchId ?? '', slot: 2 })}
+        />
       </div>
     </div>
   )
@@ -195,12 +252,32 @@ export function BracketPage() {
   const [genFormat, setGenFormat] = useState('single_elim')
   const [genError, setGenError] = useState<string | null>(null)
   const [genBusy, setGenBusy] = useState(false)
+  const [reorganisation, setReorganisation] = useState(false)
+  const [selection, setSelection] = useState<Emplacement | null>(null)
+  const [swapError, setSwapError] = useState<string | null>(null)
 
-  // Mêmes statuts que la règle du backend (BracketService.generate) : au-delà,
-  // la génération est refusée en 409. Tant que le tournoi n'est pas chargé, on
-  // laisse le bouton disponible plutôt que de le griser à tort.
-  const generationPossible =
-    !tournament || ['draft', 'registration', 'check_in'].includes(tournament.status)
+  /**
+   * Réorganisation en deux clics : sélectionner une équipe, puis sa destination.
+   * La décision est prise par `prochaineAction`, testée à part ; ici il ne reste
+   * que l'appel réseau et l'état.
+   */
+  async function choisirEmplacement(cible: Emplacement, vide: boolean) {
+    const action = prochaineAction(selection, cible, vide)
+    setSwapError(null)
+    if (action.type === 'rien') return
+    if (action.type === 'annuler') return setSelection(null)
+    if (action.type === 'selectionner') return setSelection(action.emplacement)
+
+    // Optimisme volontairement absent : l'échange peut être refusé par le
+    // backend (match joué, doublon), et un arbre affiché faux serait pire
+    // qu'un instant d'attente.
+    setSelection(null)
+    try {
+      setData(await swapBracketSlots(id, action.de, action.vers))
+    } catch (err) {
+      setSwapError(err instanceof Error ? err.message : 'Échange impossible.')
+    }
+  }
 
   async function generate() {
     setGenBusy(true)
@@ -391,11 +468,34 @@ export function BracketPage() {
           <button className="tab is-active">Principal</button>
           <button className="tab">Repêchage</button>
         </div>
+        {data && data.rounds.length > 0 && (
+          <button
+            className={'btn btn-h9 ' + (reorganisation ? 'btn-primary' : 'btn-outline')}
+            onClick={() => {
+              setReorganisation((actif) => !actif)
+              setSelection(null)
+              setSwapError(null)
+            }}
+            title="Déplacer les équipes dans l'arbre"
+          >
+            {reorganisation ? 'Terminer' : 'Réorganiser'}
+          </button>
+        )}
         <button className="btn btn-outline btn-h9">
           <IconDownload />
           Exporter
         </button>
       </div>
+
+      {reorganisation && (
+        <div className="card card-pad" data-no-drag style={{ margin: '0 0 12px' }}>
+          <strong>Réorganisation</strong> — clique une équipe, puis l'emplacement où la
+          poser. Les deux équipes échangent leurs places ; poser sur un emplacement libre
+          déplace simplement. Les matchs déjà joués ne sont pas modifiables.
+          {selection && <span> · Équipe sélectionnée, choisis sa destination.</span>}
+          {swapError && <p className="field-hint is-error" style={{ marginTop: 8 }}>{swapError}</p>}
+        </div>
+      )}
 
       <main className="app-content">
         <div className="bracket-viewport" ref={viewportRef}>
@@ -409,18 +509,6 @@ export function BracketPage() {
                   sinon les clics n'atteignent jamais le bouton. */}
               <div className="card card-pad" data-no-drag style={{ maxWidth: 440, textAlign: 'center' }}>
                 <div className="panel-title" style={{ marginBottom: 6 }}>Pas encore de bracket</div>
-                {!generationPossible ? (
-                  // Le backend refuse de générer un tournoi démarré (409). Proposer
-                  // le bouton quand même reviendrait à promettre une action qui ne
-                  // peut qu'échouer — cas rencontré sur un tournoi « en cours »
-                  // dont l'arbre n'avait jamais été généré.
-                  <p className="page-sub">
-                    Ce tournoi est déjà démarré : son arbre ne peut plus être généré.
-                    La génération n'est possible qu'avant le lancement — en brouillon,
-                    pendant les inscriptions ou le check-in.
-                  </p>
-                ) : (
-                <>
                 <p className="page-sub" style={{ marginBottom: 18 }}>
                   Choisis le format puis génère l'arbre. Place d'abord les seeds dans
                   l'onglet Participants si tu veux décider qui affronte qui.
@@ -447,8 +535,6 @@ export function BracketPage() {
                   {FORMAT_AIDE[genFormat]}
                 </p>
                 {genError && <p className="field-hint is-error" style={{ marginTop: 12 }}>{genError}</p>}
-                </>
-                )}
               </div>
             </div>
           )}
@@ -462,7 +548,14 @@ export function BracketPage() {
                     <div className="round-label">{round.label}</div>
                     <div className={'round-body' + first + last}>
                       {round.matches.map((m) => (
-                        <MatchCard m={m} key={m.id} onScore={setScoring} />
+                        <MatchCard
+                          m={m}
+                          key={m.id}
+                          onScore={setScoring}
+                          reorganisation={reorganisation}
+                          selection={selection}
+                          onPick={choisirEmplacement}
+                        />
                       ))}
                     </div>
                   </div>

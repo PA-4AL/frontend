@@ -53,6 +53,26 @@ export function generateBracket(tournamentId: string, format?: string): Promise<
   return apiPost(v1(`/tournaments/${tournamentId}/bracket/generate`), format ? { format } : {})
 }
 
+/**
+ * Échange deux emplacements de l'arbre (placement manuel).
+ *
+ * L'opération est un **échange** et non un écrasement : l'équipe présente à
+ * l'arrivée récupère la place libérée. Le backend refuse les cas dangereux —
+ * match déjà joué, même équipe deux fois dans un match.
+ */
+export function swapBracketSlots(
+  tournamentId: string,
+  from: { matchId: string; slot: number },
+  to: { matchId: string; slot: number },
+): Promise<BracketData> {
+  return apiPost(v1(`/tournaments/${tournamentId}/bracket/swap`), {
+    fromMatchId: from.matchId,
+    fromSlot: from.slot,
+    toMatchId: to.matchId,
+    toSlot: to.slot,
+  })
+}
+
 export function reportScore(matchId: string, scoreA: number, scoreB: number): Promise<BracketData> {
   return apiPost(v1(`/matches/${matchId}/score`), { scoreA, scoreB })
 }
