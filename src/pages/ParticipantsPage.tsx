@@ -13,10 +13,11 @@ import {
 } from '../api/tournaments'
 import { fetchMyTeams } from '../api/profile'
 import { useAuth } from '../auth/AuthContext'
+import { ImportTeamsModal } from '../components/ImportTeamsModal'
 import type { Participant, RegistrationStatus, Team, TournamentDetail } from '../api/types'
 import { Shell } from '../components/Shell'
 import { Avatar } from '../components/ui'
-import { IconUserPlus } from '../lib/icons'
+import { IconUpload, IconUserPlus } from '../lib/icons'
 import { Display } from '../lib/display'
 
 const STATUS_LABELS: Record<RegistrationStatus, { label: string; cls: string }> = {
@@ -33,6 +34,7 @@ export function ParticipantsPage() {
   const { user } = useAuth()
   const [tournament, setTournament] = useState<TournamentDetail | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
+  const [importOuvert, setImportOuvert] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [newName, setNewName] = useState('')
@@ -119,6 +121,16 @@ export function ParticipantsPage() {
               >
                 <IconUserPlus />
                 Ajouter
+              </button>
+              {/* Import Excel : le seul chemin qui apporte les pseudos ET les
+                  rangs en jeu, aucun formulaire ne permettant de saisir un rang. */}
+              <button
+                className="btn btn-outline btn-h9"
+                disabled={busy}
+                onClick={() => setImportOuvert(true)}
+              >
+                <IconUpload />
+                Importer un fichier
               </button>
               {isTeamTournament ? (
                 <>
@@ -262,6 +274,20 @@ export function ParticipantsPage() {
           </table>
         </div>
       </main>
+      {importOuvert && (
+        <ImportTeamsModal
+          tournamentId={id}
+          teamSize={tournament?.teamSize}
+          onClose={() => setImportOuvert(false)}
+          onImported={(resume) => {
+            setImportOuvert(false)
+            setMessage(resume)
+            // Recharge : les équipes importées sont inscrites confirmées.
+            reload()
+          }}
+        />
+      )}
+
     </Shell>
   )
 }

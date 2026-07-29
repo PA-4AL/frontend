@@ -195,5 +195,12 @@ export interface Job {
   /** `pending` | `processing` | `done` | `failed` */
   status: string
   error?: string | null
-  result?: { file_base64?: string; filename?: string; [k: string]: unknown } | null
+  result?: {
+    file_base64?: string
+    filename?: string
+    /** Import : nombre d'équipes et de joueurs créés. */
+    team_count?: number
+    player_count?: number
+    [k: string]: unknown
+  } | null
 }
