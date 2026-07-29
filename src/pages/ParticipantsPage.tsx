@@ -76,6 +76,10 @@ export function ParticipantsPage() {
   const registrationsOpen =
     tournament && ['draft', 'registration', 'check_in'].includes(tournament.status)
 
+  // Le classement n'existe qu'une fois le tournoi terminé : afficher une
+  // colonne entièrement vide pendant le tournoi n'apporterait rien.
+  const avecClassement = participants.some((p) => p.finalRank != null)
+
   return (
     <Shell
       breadcrumbs={[
@@ -168,6 +172,9 @@ export function ParticipantsPage() {
               <tr>
                 <th>Participant</th>
                 <th>Seed</th>
+                {/* Classement final : présent seulement s'il a été figé, pour ne pas
+                    afficher une colonne de tirets sur un tournoi en cours. */}
+                {avecClassement && <th>Classement</th>}
                 <th>Statut</th>
                 <th className="hide-sm">Inscrit</th>
                 <th></th>
@@ -176,7 +183,10 @@ export function ParticipantsPage() {
             <tbody>
               {participants.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>
+                  <td
+                    colSpan={avecClassement ? 6 : 5}
+                    style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}
+                  >
                     Aucun participant pour l'instant.
                   </td>
                 </tr>
@@ -209,6 +219,17 @@ export function ParticipantsPage() {
                         <span className="t-num">{p.seed ?? '—'}</span>
                       )}
                     </td>
+                    {avecClassement && (
+                      <td>
+                        {p.finalRank ? (
+                          <span className="t-num" title={`${p.finalRank}e du tournoi`}>
+                            {p.finalRank === 1 ? '🏆 1' : p.finalRank}
+                          </span>
+                        ) : (
+                          <span className="t-meta">—</span>
+                        )}
+                      </td>
+                    )}
                     <td>
                       <span className={`status-badge ${s.cls}`}>{s.label}</span>
                     </td>
