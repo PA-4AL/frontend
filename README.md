@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/PA-4AL/frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/PA-4AL/frontend/actions/workflows/ci.yml)
 
+**Décisions d'architecture** : [`docs/adr/`](docs/adr/)
+
 **Déploiement et contribution** — flow git, pipelines et mise en production sont
 documentés dans le repo `infra` :
 [GIT-FLOW](https://github.com/PA-4AL/infra/blob/main/docs/GIT-FLOW.md) ·
