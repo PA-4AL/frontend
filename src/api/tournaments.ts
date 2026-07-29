@@ -3,6 +3,7 @@ import type {
   ActivityItem,
   BracketData,
   DashboardKpis,
+  Job,
   Participant,
   PendingRegistration,
   TournamentDetail,
@@ -51,6 +52,18 @@ export function createTournament(input: CreateTournamentInput): Promise<Tourname
 
 export function generateBracket(tournamentId: string, format?: string): Promise<BracketData> {
   return apiPost(v1(`/tournaments/${tournamentId}/bracket/generate`), format ? { format } : {})
+}
+
+/**
+ * Soumet l'export .xlsx du tournoi. Traitement **asynchrone** délégué au worker
+ * Rust : la réponse est un job à suivre par `fetchJob`, pas le fichier.
+ */
+export function exportTournament(tournamentId: string): Promise<Job> {
+  return apiPost(v1(`/tournaments/${tournamentId}/export`), {})
+}
+
+export function fetchJob(jobId: string): Promise<Job> {
+  return apiGet(v1(`/jobs/${jobId}`))
 }
 
 /**

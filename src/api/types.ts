@@ -180,3 +180,18 @@ export interface ActivityItem {
   html: string
   time: string
 }
+
+/**
+ * Traitement asynchrone délégué au worker Rust (import/export Excel).
+ *
+ * Le fichier produit revient dans `result.file_base64` — le worker le renvoie
+ * encodé dans le message Pub/Sub, il n'y a pas de stockage objet intermédiaire.
+ */
+export interface Job {
+  id: string
+  type: string
+  /** `pending` | `processing` | `done` | `failed` */
+  status: string
+  error?: string | null
+  result?: { file_base64?: string; filename?: string; [k: string]: unknown } | null
+}

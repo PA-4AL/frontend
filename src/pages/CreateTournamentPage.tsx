@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createTournament, type GameSpec } from '../api/tournaments'
 import { Shell } from '../components/Shell'
+import { FORMATS, aideFormat } from '../lib/formats'
 import { IconPlus, IconTrophy, IconXCircle } from '../lib/icons'
 
 export function CreateTournamentPage() {
@@ -9,6 +10,8 @@ export function CreateTournamentPage() {
   const [name, setName] = useState('')
   const [games, setGames] = useState<GameSpec[]>([{ name: '', bestOf: 1 }])
   const [description, setDescription] = useState('')
+  // Le format se fixe ici, une fois pour toutes : l'écran Bracket l'applique.
+  const [format, setFormat] = useState('single_elim')
   const [startAt, setStartAt] = useState('')
   const [teamSize, setTeamSize] = useState(1)
   const [maxParticipants, setMaxParticipants] = useState<number | ''>('')
@@ -36,7 +39,7 @@ export function CreateTournamentPage() {
         name: name.trim(),
         games: cleanGames,
         description: description.trim() || undefined,
-        format: 'single_elim', // le format se choisit au moment de générer le bracket
+        format,
         teamSize,
         maxParticipants: maxParticipants === '' ? undefined : maxParticipants,
         visibility,
@@ -56,8 +59,8 @@ export function CreateTournamentPage() {
           <div>
             <h1 className="page-title">Créer un tournoi</h1>
             <p className="page-sub">
-              Le tournoi est créé en brouillon. Ajoute ensuite les participants, place les seeds,
-              puis génère le bracket en choisissant son format.
+              Le tournoi est créé en brouillon. Choisis son format ici, puis ajoute les
+              participants, place les seeds et génère le bracket.
             </p>
           </div>
         </div>
@@ -72,6 +75,27 @@ export function CreateTournamentPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
+          </div>
+
+          <div className="field-group">
+            <label className="field-label" htmlFor="t-format">Format du tournoi *</label>
+            <select
+              id="t-format"
+              className="input"
+              value={format}
+              onChange={(e) => setFormat(e.target.value)}
+            >
+              {FORMATS.map((f) => (
+                <option key={f.valeur} value={f.valeur} disabled={f.indisponible}>
+                  {f.libelle}
+                </option>
+              ))}
+            </select>
+            <p className="field-hint">{aideFormat(format)}</p>
+            <p className="field-hint">
+              Ce choix est définitif pour la génération de l'arbre : l'écran Bracket
+              l'applique sans le redemander.
+            </p>
           </div>
 
           <div className="field-group">
