@@ -170,6 +170,18 @@ function ScoreModal({
   )
 }
 
+/** Ce que chaque format implique concrètement, affiché sous le sélecteur. */
+const FORMAT_AIDE: Record<string, string> = {
+  single_elim: 'Une défaite élimine. Le tableau compte n\u00a0−\u00a01 matchs.',
+  double_elim:
+    'Une première défaite fait basculer dans le tableau des perdants, une seconde élimine. '
+    + 'Deux fois plus de matchs, et une grande finale entre les deux tableaux. Minimum 4 participants.',
+  round_robin:
+    'Chacun rencontre tous les autres, réparti en journées. Le classement se fait aux victoires, '
+    + 'sans élimination.',
+  swiss: 'Les appariements dépendent du classement après chaque tour : génération tour par tour, pas encore disponible.',
+}
+
 export function BracketPage() {
   const { id = '' } = useParams()
   const [data, setData] = useState<BracketData | null>(null)
@@ -399,14 +411,19 @@ export function BracketPage() {
                     onChange={(e) => setGenFormat(e.target.value)}
                   >
                     <option value="single_elim">Élimination simple</option>
-                    <option value="double_elim">Élimination double (bientôt)</option>
-                    <option value="round_robin">Round robin (bientôt)</option>
-                    <option value="swiss">Suisse (bientôt)</option>
+                    <option value="double_elim">Élimination double</option>
+                    <option value="round_robin">Round robin (toutes les rencontres)</option>
+                    {/* Le suisse apparie selon le classement après chaque tour : il ne
+                        peut pas être pré-généré comme un arbre. */}
+                    <option value="swiss" disabled>Suisse (à venir)</option>
                   </select>
                   <button className="btn btn-primary" disabled={genBusy} onClick={generate}>
                     {genBusy ? 'Génération…' : 'Générer le bracket'}
                   </button>
                 </div>
+                <p className="field-hint" style={{ marginTop: 10 }}>
+                  {FORMAT_AIDE[genFormat]}
+                </p>
                 {genError && <p className="field-hint is-error" style={{ marginTop: 12 }}>{genError}</p>}
               </div>
             </div>
