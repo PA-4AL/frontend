@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import {
+  exportTournament,
   fetchBracket,
+  fetchJob,
   fetchTournament,
   generateBracket,
   reportScore,
@@ -9,6 +11,8 @@ import {
 } from '../api/tournaments'
 import { peutDemarrerUnGlissement } from './bracketDrag'
 import { estReorganisable, memeEmplacement, prochaineAction, type Emplacement } from './bracketSwap'
+import { aideFormat, libelleFormat } from '../lib/formats'
+import { base64EnOctets, jobTermine, nomDeFichier } from '../lib/telechargement'
 import type { BracketData, BracketMatch, BracketSlot, TournamentDetail } from '../api/types'
 import { Shell } from '../components/Shell'
 import { FmtBadge, StatusBadge } from '../components/ui'
@@ -228,18 +232,6 @@ function ScoreModal({
   )
 }
 
-/** Ce que chaque format implique concrètement, affiché sous le sélecteur. */
-const FORMAT_AIDE: Record<string, string> = {
-  single_elim: 'Une défaite élimine. Le tableau compte n\u00a0−\u00a01 matchs.',
-  double_elim:
-    'Une première défaite fait basculer dans le tableau des perdants, une seconde élimine. '
-    + 'Deux fois plus de matchs, et une grande finale entre les deux tableaux. Minimum 4 participants.',
-  round_robin:
-    'Chacun rencontre tous les autres, réparti en journées. Le classement se fait aux victoires, '
-    + 'sans élimination.',
-  swiss: 'Les appariements dépendent du classement après chaque tour : génération tour par tour, pas encore disponible.',
-}
-
 export function BracketPage() {
   const { id = '' } = useParams()
   const [data, setData] = useState<BracketData | null>(null)
@@ -249,12 +241,13 @@ export function BracketPage() {
   const [scoring, setScoring] = useState<BracketMatch | null>(null)
   const [scoreError, setScoreError] = useState<string | null>(null)
   const [scoreBusy, setScoreBusy] = useState(false)
-  const [genFormat, setGenFormat] = useState('single_elim')
   const [genError, setGenError] = useState<string | null>(null)
   const [genBusy, setGenBusy] = useState(false)
   const [reorganisation, setReorganisation] = useState(false)
   const [selection, setSelection] = useState<Emplacement | null>(null)
   const [swapError, setSwapError] = useState<string | null>(null)
+  const [exportEtat, setExportEtat] = useState<string | null>(null)
+  const [exportErreur, setExportErreur] = useState<string | null>(null)
 
   /**
    * Réorganisation en deux clics : sélectionner une équipe, puis sa destination.
@@ -279,11 +272,54 @@ export function BracketPage() {
     }
   }
 
+  /**
+   * Export .xlsx : le backend rend un job, le worker Rust produit le fichier, et
+   * on interroge le job jusqu'à ce qu'il aboutisse.
+   *
+   * L'attente est bornée : sans plafond, un worker en panne laisserait le bouton
+   * tourner indéfiniment sans jamais rien dire à l'utilisateur.
+   */
+  async function exporter() {
+    setExportErreur(null)
+    setExportEtat('Export…')
+    try {
+      let job = await exportTournament(id)
+      for (let essai = 0; essai < 40 && !jobTermine(job.status); essai++) {
+        await new Promise((r) => setTimeout(r, 1500))
+        job = await fetchJob(job.id)
+      }
+      if (job.status === 'failed') throw new Error(job.error ?? 'Le traitement a échoué.')
+      if (!jobTermine(job.status)) {
+        throw new Error("L'export prend un temps inhabituel. Réessaie dans un instant.")
+      }
+      const base64 = job.result?.file_base64
+      if (!base64) throw new Error("Le traitement s'est terminé sans produire de fichier.")
+
+      const url = URL.createObjectURL(
+        new Blob([base64EnOctets(base64) as unknown as BlobPart], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }),
+      )
+      const lien = document.createElement('a')
+      lien.href = url
+      lien.download = job.result?.filename ?? nomDeFichier(tournament?.name ?? 'tournoi')
+      lien.click()
+      // Sans révocation, le blob resterait en mémoire jusqu'au rechargement.
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setExportErreur(err instanceof Error ? err.message : 'Export impossible.')
+    } finally {
+      setExportEtat(null)
+    }
+  }
+
   async function generate() {
     setGenBusy(true)
     setGenError(null)
     try {
-      const generated = await generateBracket(id, genFormat)
+      // Aucun format transmis : le backend applique celui de la phase,
+      // défini à la création du tournoi.
+      const generated = await generateBracket(id)
       setData(generated)
       fetchTournament(id).then(setTournament).catch(() => undefined)
     } catch (err) {
@@ -481,11 +517,17 @@ export function BracketPage() {
             {reorganisation ? 'Terminer' : 'Réorganiser'}
           </button>
         )}
-        <button className="btn btn-outline btn-h9">
+        <button className="btn btn-outline btn-h9" disabled={exportEtat !== null} onClick={exporter}>
           <IconDownload />
-          Exporter
+          {exportEtat ?? 'Exporter'}
         </button>
       </div>
+
+      {exportErreur && (
+        <div className="card card-pad" data-no-drag style={{ margin: '0 0 12px' }}>
+          <p className="field-hint is-error" style={{ margin: 0 }}>{exportErreur}</p>
+        </div>
+      )}
 
       {reorganisation && (
         <div className="card card-pad" data-no-drag style={{ margin: '0 0 12px' }}>
@@ -510,29 +552,17 @@ export function BracketPage() {
               <div className="card card-pad" data-no-drag style={{ maxWidth: 440, textAlign: 'center' }}>
                 <div className="panel-title" style={{ marginBottom: 6 }}>Pas encore de bracket</div>
                 <p className="page-sub" style={{ marginBottom: 18 }}>
-                  Choisis le format puis génère l'arbre. Place d'abord les seeds dans
-                  l'onglet Participants si tu veux décider qui affronte qui.
+                  Format du tournoi : <strong>{libelleFormat(tournament?.format)}</strong>,
+                  choisi à la création. Place d'abord les seeds dans l'onglet Participants
+                  si tu veux décider qui affronte qui.
                 </p>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                  <select
-                    className="input"
-                    style={{ width: 200 }}
-                    value={genFormat}
-                    onChange={(e) => setGenFormat(e.target.value)}
-                  >
-                    <option value="single_elim">Élimination simple</option>
-                    <option value="double_elim">Élimination double</option>
-                    <option value="round_robin">Round robin (toutes les rencontres)</option>
-                    {/* Le suisse apparie selon le classement après chaque tour : il ne
-                        peut pas être pré-généré comme un arbre. */}
-                    <option value="swiss" disabled>Suisse (à venir)</option>
-                  </select>
                   <button className="btn btn-primary" disabled={genBusy} onClick={generate}>
                     {genBusy ? 'Génération…' : 'Générer le bracket'}
                   </button>
                 </div>
                 <p className="field-hint" style={{ marginTop: 10 }}>
-                  {FORMAT_AIDE[genFormat]}
+                  {aideFormat(tournament?.format)}
                 </p>
                 {genError && <p className="field-hint is-error" style={{ marginTop: 12 }}>{genError}</p>}
               </div>
