@@ -105,6 +105,8 @@ export interface Participant {
   status: RegistrationStatus
   seed: number | null
   registeredLabel: string
+  /** Classement final, 1 = vainqueur ; absent tant que le tournoi n'est pas terminé. */
+  finalRank?: number | null
 }
 
 export interface PendingRegistration {
