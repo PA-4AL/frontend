@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { fetchBracket, fetchTournament, generateBracket, reportScore } from '../api/tournaments'
+import { peutDemarrerUnGlissement } from './bracketDrag'
 import type { BracketData, BracketMatch, BracketSlot, TournamentDetail } from '../api/types'
 import { Shell } from '../components/Shell'
 import { FmtBadge, StatusBadge } from '../components/ui'
@@ -195,6 +196,12 @@ export function BracketPage() {
   const [genError, setGenError] = useState<string | null>(null)
   const [genBusy, setGenBusy] = useState(false)
 
+  // Mêmes statuts que la règle du backend (BracketService.generate) : au-delà,
+  // la génération est refusée en 409. Tant que le tournoi n'est pas chargé, on
+  // laisse le bouton disponible plutôt que de le griser à tort.
+  const generationPossible =
+    !tournament || ['draft', 'registration', 'check_in'].includes(tournament.status)
+
   async function generate() {
     setGenBusy(true)
     setGenError(null)
@@ -281,8 +288,9 @@ export function BracketPage() {
     let lastX = 0
     let lastY = 0
     const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as HTMLElement
-      if (target.closest('.bm-team') || target.closest('.zoom-bar')) return
+      // Capturer le pointeur au-dessus d'un contrôle le rendrait inerte : le
+      // `click` serait délivré au viewport et non au bouton (voir bracketDrag).
+      if (e.button !== 0 || !peutDemarrerUnGlissement(e.target)) return
       dragging = true
       lastX = e.clientX
       lastY = e.clientY
@@ -397,8 +405,22 @@ export function BracketPage() {
           </div>
           {data && data.rounds.length === 0 && (
             <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', zIndex: 4 }}>
-              <div className="card card-pad" style={{ maxWidth: 440, textAlign: 'center' }}>
+              {/* data-no-drag : le viewport ne doit pas capturer le pointeur ici,
+                  sinon les clics n'atteignent jamais le bouton. */}
+              <div className="card card-pad" data-no-drag style={{ maxWidth: 440, textAlign: 'center' }}>
                 <div className="panel-title" style={{ marginBottom: 6 }}>Pas encore de bracket</div>
+                {!generationPossible ? (
+                  // Le backend refuse de générer un tournoi démarré (409). Proposer
+                  // le bouton quand même reviendrait à promettre une action qui ne
+                  // peut qu'échouer — cas rencontré sur un tournoi « en cours »
+                  // dont l'arbre n'avait jamais été généré.
+                  <p className="page-sub">
+                    Ce tournoi est déjà démarré : son arbre ne peut plus être généré.
+                    La génération n'est possible qu'avant le lancement — en brouillon,
+                    pendant les inscriptions ou le check-in.
+                  </p>
+                ) : (
+                <>
                 <p className="page-sub" style={{ marginBottom: 18 }}>
                   Choisis le format puis génère l'arbre. Place d'abord les seeds dans
                   l'onglet Participants si tu veux décider qui affronte qui.
@@ -425,6 +447,8 @@ export function BracketPage() {
                   {FORMAT_AIDE[genFormat]}
                 </p>
                 {genError && <p className="field-hint is-error" style={{ marginTop: 12 }}>{genError}</p>}
+                </>
+                )}
               </div>
             </div>
           )}
