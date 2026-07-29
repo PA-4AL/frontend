@@ -301,3 +301,29 @@ table.t-list { width:100%; border-collapse:collapse; }
 /* ---------- Page placeholder ---------- */
 .placeholder-card { padding:48px; text-align:center; color:var(--muted-foreground); }
 .placeholder-card .panel-title { color:var(--foreground); margin-bottom:8px; }
+
+/* Écrans d'attente et de panne d'authentification (App.tsx) : centrés, sobres,
+   sur les tokens du design system. */
+.auth-splash {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.auth-splash h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.auth-splash p {
+  margin: 0;
+  max-width: 42ch;
+  color: var(--muted-foreground);
+}

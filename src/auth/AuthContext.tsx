@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { initKeycloak, keycloak, keycloakEnabled } from './keycloak'
+import { initKeycloak, keycloak, keycloakEnabled, keycloakUrl } from './keycloak'
 
 export interface AuthUser {
   pseudo: string
@@ -21,6 +21,8 @@ export interface AuthUser {
 interface AuthState {
   ready: boolean
   user: AuthUser | null
+  /** Renseigné si l'initialisation Keycloak a échoué (serveur injoignable, realm absent…). */
+  authError: string | null
   /** Connexion par identifiants — redirige vers Keycloak (spec §4.5). */
   login: (email?: string) => void
   /** SSO fédéré : Keycloak délègue à Google / Discord. */
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // on l'initialise ici plutôt que par un setState synchrone dans l'effet.
   const [ready, setReady] = useState(!keycloakEnabled || keycloak === null)
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [authError, setAuthError] = useState<string | null>(null)
 
   useEffect(() => {
     const kc = keycloak
@@ -69,6 +72,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
       }
       setReady(true)
+    }).catch((error: unknown) => {
+      // Sans ce catch, la promesse rejetée laissait `ready` à false pour
+      // toujours : l'app rendait `null`, donc une page blanche sans message.
+      console.error('Initialisation Keycloak impossible', error)
+      setAuthError(
+        `Le service d'authentification est injoignable (${keycloakUrl()}). ` +
+          'Réessayez dans quelques instants.',
+      )
+      setReady(true)
     })
   }, [])
 
@@ -89,8 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ ready, user, login, loginWith, register, logout }),
-    [ready, user, login, loginWith, register, logout],
+    () => ({ ready, user, authError, login, loginWith, register, logout }),
+    [ready, user, authError, login, loginWith, register, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
