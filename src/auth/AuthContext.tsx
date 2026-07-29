@@ -84,6 +84,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  // Entretien de la session.
+  //
+  // Le jeton d'accès ne vit que 5 minutes et n'était renouvelé qu'au moment d'un
+  // appel API (`updateToken(30)` dans api/client.ts). Un onglet laissé ouvert
+  // sans interaction finissait donc par perdre sa session, alors que le realm
+  // tolère 12 heures d'inactivité : le maillon faible était le client, pas le
+  // serveur. Ce battement le renouvelle en silence.
+  //
+  // Un échec n'est volontairement PAS traité comme une erreur : la session a pu
+  // être fermée ailleurs, ou le réseau tomber une minute. Le prochain appel API
+  // relancera une connexion s'il le faut — inutile d'éjecter l'utilisateur ici.
+  useEffect(() => {
+    if (!keycloakEnabled || !keycloak || !user) return
+    const battement = setInterval(
+      () => {
+        keycloak?.updateToken(120).catch(() => undefined)
+      },
+      60 * 1000,
+    )
+    return () => clearInterval(battement)
+  }, [user])
+
   const login = useCallback((email?: string) => {
     void keycloak?.login({ loginHint: email, redirectUri: `${location.origin}/` })
   }, [])
