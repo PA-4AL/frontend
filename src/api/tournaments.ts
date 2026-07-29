@@ -62,6 +62,23 @@ export function exportTournament(tournamentId: string): Promise<Job> {
   return apiPost(v1(`/tournaments/${tournamentId}/export`), {})
 }
 
+/**
+ * Importe des équipes depuis un fichier Excel.
+ *
+ * `columns` désigne la colonne de chaque donnée (`{"Équipe": "A", …}`) : les
+ * libellés du fichier n'ont alors plus d'importance. Traitement **asynchrone** —
+ * la réponse est un job à suivre par [fetchJob].
+ */
+export function importTeams(req: {
+  tournamentId: string
+  tournamentType: string
+  fileBase64: string
+  columns: Record<string, string>
+  hasHeader: boolean
+}): Promise<Job> {
+  return apiPost(v1('/teams/import'), req)
+}
+
 export function fetchJob(jobId: string): Promise<Job> {
   return apiGet(v1(`/jobs/${jobId}`))
 }
