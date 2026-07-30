@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchActivity, fetchDashboardKpis, fetchTournaments } from '../api/tournaments'
+import { FILTRES_STATUT, segmenter, type FiltreStatut } from '../lib/sectionsTournois'
 import type { ActivityItem, DashboardKpis, TournamentSummary } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { Shell } from '../components/Shell'
@@ -18,7 +19,6 @@ import {
   IconUsers,
 } from '../lib/icons'
 
-type Filter = 'all' | 'live' | 'upcoming'
 
 const FEED_STYLE: Record<ActivityItem['kind'], { bg: string; color: string; icon: ReactNode }> = {
   win: { bg: 'rgba(0,230,118,.12)', color: 'var(--pa-live-dark)', icon: <IconCheck /> },
@@ -34,7 +34,7 @@ export function DashboardPage() {
   const [kpis, setKpis] = useState<DashboardKpis | null>(null)
   const [tournaments, setTournaments] = useState<TournamentSummary[]>([])
   const [activity, setActivity] = useState<ActivityItem[]>([])
-  const [filter, setFilter] = useState<Filter>('all')
+  const [filtreStatut, setFiltreStatut] = useState<FiltreStatut>('tous')
 
   const isOrganizer = user?.isOrganizer ?? false
 
@@ -45,11 +45,7 @@ export function DashboardPage() {
     if (isOrganizer) fetchActivity().then(setActivity).catch(() => setActivity([]))
   }, [isOrganizer])
 
-  const filtered = tournaments.filter((t) => {
-    if (filter === 'live') return t.status === 'ongoing'
-    if (filter === 'upcoming') return t.status === 'registration' || t.status === 'check_in'
-    return true
-  })
+  const sections = segmenter(tournaments, filtreStatut)
 
   const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
 
@@ -134,52 +130,70 @@ export function DashboardPage() {
           <div className="card">
             <div className="panel-head">
               <span className="panel-title">Tournois</span>
-              <div className="tabs" style={{ height: 32 }}>
-                <button className={'tab' + (filter === 'all' ? ' is-active' : '')} onClick={() => setFilter('all')}>
-                  Tous
-                </button>
-                <button className={'tab' + (filter === 'live' ? ' is-active' : '')} onClick={() => setFilter('live')}>
-                  Live
-                </button>
-                <button
-                  className={'tab' + (filter === 'upcoming' ? ' is-active' : '')}
-                  onClick={() => setFilter('upcoming')}
-                >
-                  À venir
-                </button>
-              </div>
-            </div>
-            <table className="t-list">
-              <thead>
-                <tr>
-                  <th>Tournoi</th>
-                  <th>Format</th>
-                  <th className="hide-sm">Participants</th>
-                  <th>Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((t) => (
-                  <tr key={t.id} onClick={() => navigate(`/tournois/${t.id}`)}>
-                    <td>
-                      <div className="t-name">{t.name}</div>
-                      <div className="t-meta">
-                        {t.code} · {t.scheduleLabel}
-                      </div>
-                    </td>
-                    <td>
-                      <FmtBadge format={t.format} />
-                    </td>
-                    <td className="hide-sm">
-                      <span className="t-num">{t.participants}</span> / {t.maxParticipants}
-                    </td>
-                    <td>
-                      <StatusBadge status={t.status} />
-                    </td>
-                  </tr>
+              {/* Filtre par statut : les trois onglets précédents (Tous / Live /
+                  À venir) mélangeaient un filtre et une notion de section. La
+                  séparation en sections rend le filtre orthogonal. */}
+              <select
+                className="input"
+                style={{ width: 200, height: 32 }}
+                aria-label="Filtrer par statut"
+                value={filtreStatut}
+                onChange={(e) => setFiltreStatut(e.target.value as FiltreStatut)}
+              >
+                {FILTRES_STATUT.map((f) => (
+                  <option key={f.valeur} value={f.valeur}>{f.libelle}</option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </div>
+            {sections.length === 0 && (
+              <p className="page-sub" style={{ padding: '16px 20px', margin: 0 }}>
+                Aucun tournoi ne correspond à ce filtre.
+              </p>
+            )}
+            {sections.map((section) => (
+              <div key={section.cle}>
+                <div style={{ padding: '14px 20px 6px' }}>
+                  <div className="panel-title">
+                    {section.titre}{' '}
+                    <span className="t-meta">({section.tournois.length})</span>
+                  </div>
+                  <p className="t-meta" style={{ margin: 0 }}>{section.description}</p>
+                </div>
+                <table className="t-list">
+                  <thead>
+                    <tr>
+                      <th>Tournoi</th>
+                      <th>Format</th>
+                      <th className="hide-sm">Participants</th>
+                      <th>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {section.tournois.map((t) => (
+                      <tr key={t.id} onClick={() => navigate(`/tournois/${t.id}`)}>
+                        <td>
+                          <div className="t-name">{t.name}</div>
+                          <div className="t-meta">
+                            {t.code} · {t.scheduleLabel}
+                            {t.viewerIsOrganizer ? ' · vous organisez' : ''}
+                            {t.viewerIsRegistered ? ' · vous participez' : ''}
+                          </div>
+                        </td>
+                        <td>
+                          <FmtBadge format={t.format} />
+                        </td>
+                        <td className="hide-sm">
+                          <span className="t-num">{t.participants}</span> / {t.maxParticipants}
+                        </td>
+                        <td>
+                          <StatusBadge status={t.status} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
           </div>
 
           {isOrganizer && (

@@ -21,6 +21,9 @@ export interface TournamentSummary {
   maxParticipants: number
   status: TournamentStatus
   scheduleLabel: string
+  /** Calculés par le serveur : servent à séparer « mes tournois » du reste. */
+  viewerIsOrganizer?: boolean
+  viewerIsRegistered?: boolean
 }
 
 export interface TournamentDetail extends TournamentSummary {
