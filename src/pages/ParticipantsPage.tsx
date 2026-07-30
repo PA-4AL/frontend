@@ -99,6 +99,20 @@ export function ParticipantsPage() {
               {tournament?.maxParticipants ? ` / ${tournament.maxParticipants}` : ''} inscrits
             </p>
           </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Import Excel : hors du bloc conditionnel, donc visible même sur un
+                tournoi démarré. Le masquer rendait le bouton introuvable sans
+                expliquer pourquoi ; la boîte de dialogue avertit désormais que les
+                équipes ne rejoindront pas un bracket déjà généré. */}
+            <button
+              className="btn btn-outline btn-h9"
+              disabled={busy}
+              onClick={() => setImportOuvert(true)}
+            >
+              <IconUpload />
+              Importer un fichier
+            </button>
+          </div>
           {registrationsOpen && (
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <input
@@ -121,16 +135,6 @@ export function ParticipantsPage() {
               >
                 <IconUserPlus />
                 Ajouter
-              </button>
-              {/* Import Excel : le seul chemin qui apporte les pseudos ET les
-                  rangs en jeu, aucun formulaire ne permettant de saisir un rang. */}
-              <button
-                className="btn btn-outline btn-h9"
-                disabled={busy}
-                onClick={() => setImportOuvert(true)}
-              >
-                <IconUpload />
-                Importer un fichier
               </button>
               {isTeamTournament ? (
                 <>
@@ -278,6 +282,7 @@ export function ParticipantsPage() {
         <ImportTeamsModal
           tournamentId={id}
           teamSize={tournament?.teamSize}
+          tournoiDemarre={!registrationsOpen}
           onClose={() => setImportOuvert(false)}
           onImported={(resume) => {
             setImportOuvert(false)

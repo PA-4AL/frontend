@@ -82,6 +82,9 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
       .catch(() => undefined)
     throw new Error(detail ?? `API ${res.status} sur ${path}`)
   }
+  // 204 : corps vide. `res.json()` lèverait une SyntaxError, transformant une
+  // réussite en échec affiché à l'utilisateur.
+  if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
 

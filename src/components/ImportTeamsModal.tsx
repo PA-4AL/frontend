@@ -1,11 +1,15 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { fetchJob, importTeams } from '../api/tournaments'
 import {
   COLONNES_ATTENDUES,
   LETTRES,
+  MAX_FICHIER_OCTETS,
   erreurDeMapping,
   fichierEnBase64,
   mappingParDefaut,
+  mappingMemorise,
+  memoriserMapping,
+  resumeDuMapping,
   typeDeFichierPour,
 } from '../lib/importColonnes'
 import { jobTermine } from '../lib/telechargement'
@@ -25,11 +29,14 @@ import { jobTermine } from '../lib/telechargement'
 export function ImportTeamsModal({
   tournamentId,
   teamSize,
+  tournoiDemarre,
   onClose,
   onImported,
 }: {
   tournamentId: string
   teamSize: number | undefined
+  /** Le bracket existe déjà : les équipes importées ne le rejoindront pas. */
+  tournoiDemarre?: boolean
   onClose: () => void
   onImported: (message: string) => void
 }) {
@@ -37,16 +44,41 @@ export function ImportTeamsModal({
   const colonnes = COLONNES_ATTENDUES[typeDeFichier] ?? COLONNES_ATTENDUES.esport_5v5
 
   const [fichier, setFichier] = useState<File | null>(null)
-  const [mapping, setMapping] = useState<Record<string, string>>(mappingParDefaut(colonnes))
+  // Un organisateur importe souvent plusieurs fichiers de même forme : refaire le
+  // mapping à chaque fois est une corvée évitable.
+  const [mapping, setMapping] = useState<Record<string, string>>(
+    () => mappingMemorise(typeDeFichier) ?? mappingParDefaut(colonnes),
+  )
   const [avecEntete, setAvecEntete] = useState(true)
   const [erreur, setErreur] = useState<string | null>(null)
   const [etat, setEtat] = useState<string | null>(null)
 
+  const probleme = erreurDeMapping(colonnes, mapping)
+
+  // Échap ferme : un dialogue qui ne se ferme qu'au clic est pénible au clavier.
+  useEffect(() => {
+    const auClavier = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', auClavier)
+    return () => window.removeEventListener('keydown', auClavier)
+  }, [onClose])
+
+  function choisirFichier(f: File | null) {
+    setErreur(null)
+    if (f && f.size > MAX_FICHIER_OCTETS) {
+      // Même plafond que le backend : mieux vaut le dire ici que laisser partir
+      // 12 Mo sur le réseau pour récupérer un refus.
+      setFichier(null)
+      setErreur(`Fichier trop volumineux (${Math.round(f.size / 1e6)} Mo). La limite est de 9 Mo.`)
+      return
+    }
+    setFichier(f)
+  }
+
   async function envoyer(e: FormEvent) {
     e.preventDefault()
     if (!fichier) return setErreur('Choisis un fichier .xlsx.')
-
-    const probleme = erreurDeMapping(colonnes, mapping)
     if (probleme) return setErreur(probleme)
 
     setErreur(null)
@@ -72,6 +104,7 @@ export function ImportTeamsModal({
         throw new Error("L'import prend un temps inhabituel. Réessaie dans un instant.")
       }
 
+      memoriserMapping(typeDeFichier, mapping)
       const equipes = Number(job.result?.team_count ?? 0)
       const joueurs = Number(job.result?.player_count ?? 0)
       onImported(`${equipes} équipe(s) et ${joueurs} joueur(s) importés.`)
@@ -87,13 +120,16 @@ export function ImportTeamsModal({
       style={{
         position: 'fixed', inset: 0, zIndex: 100,
         background: 'rgba(0,0,0,.55)',
-        display: 'grid', placeItems: 'center',
+        display: 'grid', placeItems: 'center', padding: 16,
       }}
       onClick={onClose}
     >
       <form
         className="card card-pad"
-        style={{ width: 460, maxWidth: '92vw', display: 'flex', flexDirection: 'column', gap: 16 }}
+        style={{
+          width: 520, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: 16,
+        }}
         onClick={(e) => e.stopPropagation()}
         onSubmit={envoyer}
       >
@@ -105,6 +141,14 @@ export function ImportTeamsModal({
           </p>
         </div>
 
+        {tournoiDemarre && (
+          <p className="field-hint" style={{ margin: 0 }}>
+            ⚠️ Ce tournoi a déjà démarré. Les équipes importées seront inscrites mais
+            <strong> ne rejoindront pas le bracket existant</strong>, qui ne se
+            régénère pas tout seul.
+          </p>
+        )}
+
         <div className="field-group">
           <label className="field-label" htmlFor="import-fichier">Fichier Excel (.xlsx) *</label>
           <input
@@ -112,20 +156,21 @@ export function ImportTeamsModal({
             className="input"
             type="file"
             accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            onChange={(e) => {
-              setFichier(e.target.files?.[0] ?? null)
-              setErreur(null)
-            }}
+            onChange={(e) => choisirFichier(e.target.files?.[0] ?? null)}
           />
-          {fichier && <p className="field-hint">{fichier.name}</p>}
+          {fichier && (
+            <p className="field-hint">
+              {fichier.name} — {(fichier.size / 1024).toFixed(0)} Ko
+            </p>
+          )}
         </div>
 
         <div className="field-group">
-          <label className="field-label">Colonnes du fichier</label>
+          <label className="field-label">Où se trouve chaque donnée ?</label>
           {colonnes.map((colonne) => (
             <div
               key={colonne}
-              style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: 10, alignItems: 'center' }}
+              style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10, alignItems: 'center' }}
             >
               <span>{colonne}</span>
               <select
@@ -143,6 +188,11 @@ export function ImportTeamsModal({
               </select>
             </div>
           ))}
+          {/* Récapitulatif en une phrase : c'est ce qui permet de vérifier son
+              choix sans relire trois listes déroulantes. */}
+          <p className={'field-hint' + (probleme ? ' is-error' : '')} style={{ marginTop: 4 }}>
+            {probleme ?? resumeDuMapping(colonnes, mapping)}
+          </p>
         </div>
 
         <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -154,7 +204,7 @@ export function ImportTeamsModal({
           <span>La première ligne contient les titres des colonnes</span>
         </label>
         {!avecEntete && (
-          <p className="field-hint">
+          <p className="field-hint" style={{ marginTop: -8 }}>
             La première ligne sera lue comme une équipe. Décoche seulement si ton
             fichier commence directement par des données.
           </p>
@@ -166,7 +216,11 @@ export function ImportTeamsModal({
           <button type="button" className="btn btn-outline" onClick={onClose}>
             Annuler
           </button>
-          <button type="submit" className="btn btn-primary" disabled={etat !== null}>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={etat !== null || !fichier || probleme !== null}
+          >
             {etat ?? 'Importer'}
           </button>
         </div>
