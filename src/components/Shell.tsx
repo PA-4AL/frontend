@@ -4,8 +4,8 @@ import { fetchProfile } from '../api/profile'
 import { fetchDashboardKpis, fetchTournaments } from '../api/tournaments'
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../lib/theme'
+import { Annonces } from './Annonces'
 import {
-  IconBell,
   IconBracket,
   IconCheckCircle,
   IconChevronLeft,
@@ -186,10 +186,7 @@ export function Shell({
           <button className="topnav-icon" onClick={toggle} aria-label="Thème">
             {dark ? <IconSun /> : <IconMoon />}
           </button>
-          <button className="topnav-icon" aria-label="Notifications">
-            <IconBell />
-            <span className="notif-dot" />
-          </button>
+          <Annonces />
           <Link to="/profil" title="Mon profil" style={{ display: 'flex' }}>
             <Avatar color="var(--pa-accent)" src={avatarUrl}>{user?.initials ?? '??'}</Avatar>
           </Link>
