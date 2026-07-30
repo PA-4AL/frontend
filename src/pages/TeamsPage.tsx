@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { addTeamMember, createTeam, fetchMyTeams, removeTeamMember } from '../api/profile'
 import type { Team } from '../api/types'
-import { useAuth } from '../auth/AuthContext'
 import { Shell } from '../components/Shell'
 import { Avatar } from '../components/ui'
 import { Display } from '../lib/display'
@@ -111,7 +110,6 @@ function TeamCard({
 }
 
 export function TeamsPage() {
-  const { user } = useAuth()
   const [teams, setTeams] = useState<Team[]>([])
   const [name, setName] = useState('')
   const [tag, setTag] = useState('')
@@ -141,8 +139,15 @@ export function TeamsPage() {
     }
   }
 
+  /**
+   * Le serveur tranche, car lui seul connaît l'identifiant interne de l'appelant.
+   *
+   * Cette fonction comparait les **pseudos** : deux homonymes se voyaient
+   * mutuellement capitaines, et un changement de pseudo faisait perdre ses droits
+   * d'affichage au vrai capitaine. Un pseudo n'est pas une identité.
+   */
   function isCaptain(team: Team): boolean {
-    return team.members.some((m) => m.role === 'captain' && m.pseudo === user?.pseudo)
+    return team.viewerIsCaptain === true
   }
 
   return (

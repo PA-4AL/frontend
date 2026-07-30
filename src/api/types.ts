@@ -163,6 +163,8 @@ export interface Team {
   name: string
   tag: string | null
   members: TeamMember[]
+  /** Calculé par le serveur : l'appelant est-il capitaine ? (pas déduit du pseudo) */
+  viewerIsCaptain?: boolean
 }
 
 /* ---- Dashboard ---- */
@@ -179,7 +181,12 @@ export interface DashboardKpis {
 export interface ActivityItem {
   id: string
   kind: 'win' | 'live' | 'registration' | 'dispute' | 'finished'
-  html: string
+  /** Ce dont on parle : participant ou tournoi. Mis en valeur à l'affichage. */
+  sujet: string
+  /** Ce qui s'est passé — texte fixe venant du serveur. */
+  action: string
+  /** Précision optionnelle, par exemple le tournoi concerné. */
+  complement?: string | null
   time: string
 }
 

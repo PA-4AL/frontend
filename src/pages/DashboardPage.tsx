@@ -199,7 +199,14 @@ export function DashboardPage() {
                       {s.icon}
                     </span>
                     <div className="feed-body">
-                      <span dangerouslySetInnerHTML={{ __html: a.html }} />
+                      {/* Rendu en texte, jamais en HTML : le serveur n'envoie plus
+                          de balisage, et React échappe tout ce qu'il affiche.
+                          C'est ce qui rend l'injection impossible plutôt que
+                          seulement improbable. */}
+                      <span>
+                        <strong>{a.sujet}</strong> {a.action}
+                        {a.complement ? ` ${a.complement}.` : ''}
+                      </span>
                       <div className="feed-time">{a.time}</div>
                     </div>
                   </div>
