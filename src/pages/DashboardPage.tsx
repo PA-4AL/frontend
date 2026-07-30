@@ -51,7 +51,7 @@ export function DashboardPage() {
 
   return (
     <Shell
-      breadcrumbs={[{ label: 'Admin' }, { label: 'Tableau de bord' }]}
+      breadcrumbs={[{ label: 'Accueil' }, { label: 'Tableau de bord' }]}
       searchPlaceholder="Rechercher un tournoi…"
     >
       <main className="app-content" style={{ maxWidth: 1280, margin: '0 auto', width: '100%' }}>

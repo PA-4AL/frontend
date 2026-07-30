@@ -53,7 +53,7 @@ export function CreateTournamentPage() {
   }
 
   return (
-    <Shell breadcrumbs={[{ label: 'Admin', to: '/' }, { label: 'Tournois' }, { label: 'Nouveau' }]}>
+    <Shell breadcrumbs={[{ label: 'Accueil', to: '/' }, { label: 'Tournois' }, { label: 'Nouveau' }]}>
       <main className="app-content" style={{ maxWidth: 760, margin: '0 auto', width: '100%' }}>
         <div className="page-head">
           <div>

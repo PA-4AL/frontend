@@ -151,7 +151,7 @@ export function TeamsPage() {
   }
 
   return (
-    <Shell breadcrumbs={[{ label: 'Admin', to: '/' }, { label: 'Équipes' }]}>
+    <Shell breadcrumbs={[{ label: 'Accueil', to: '/' }, { label: 'Équipes' }]}>
       <main className="app-content" style={{ maxWidth: 980, margin: '0 auto', width: '100%' }}>
         <div className="page-head">
           <div>

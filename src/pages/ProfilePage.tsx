@@ -105,7 +105,7 @@ export function ProfilePage() {
   const stats = profile?.stats
 
   return (
-    <Shell breadcrumbs={[{ label: 'Admin', to: '/' }, { label: 'Profil' }]}>
+    <Shell breadcrumbs={[{ label: 'Accueil', to: '/' }, { label: 'Profil' }]}>
       <main className="app-content" style={{ maxWidth: 980, margin: '0 auto', width: '100%' }}>
         <div className="page-head">
           <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
