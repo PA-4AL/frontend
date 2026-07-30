@@ -85,7 +85,7 @@ export function ParticipantsPage() {
   return (
     <Shell
       breadcrumbs={[
-        { label: 'Admin', to: '/' },
+        { label: 'Accueil', to: '/' },
         { label: tournament?.name ?? 'Tournoi', to: `/tournois/${id}` },
         { label: 'Participants' },
       ]}
@@ -313,7 +313,7 @@ export function ParticipantsRedirect() {
   if (target === undefined) return null
   if (target === null) {
     return (
-      <Shell breadcrumbs={[{ label: 'Admin', to: '/' }, { label: 'Participants' }]}>
+      <Shell breadcrumbs={[{ label: 'Accueil', to: '/' }, { label: 'Participants' }]}>
         <main className="app-content">
           <div className="card placeholder-card">
             <div className="panel-title">Participants</div>

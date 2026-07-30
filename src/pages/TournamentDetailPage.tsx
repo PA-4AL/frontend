@@ -91,7 +91,7 @@ export function TournamentDetailPage() {
 
   return (
     <Shell
-      breadcrumbs={[{ label: 'Admin', to: '/' }, { label: 'Tournois' }, { label: t.name }]}
+      breadcrumbs={[{ label: 'Accueil', to: '/' }, { label: 'Tournois' }, { label: t.name }]}
     >
       <main className="app-content" style={{ maxWidth: 1280, margin: '0 auto', width: '100%' }}>
         <section className="hero">

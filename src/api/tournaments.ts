@@ -118,6 +118,16 @@ export function swapBracketSlots(
   })
 }
 
+/**
+ * Démarre un match : le passe en cours et publie l'annonce « Début du match ».
+ *
+ * Action explicite, parce que les matchs d'un même tour ne se jouent pas en même
+ * temps — les annoncer tous dès qu'ils deviennent jouables serait faux.
+ */
+export function startMatch(matchId: string): Promise<BracketData> {
+  return apiPost(v1(`/matches/${matchId}/start`), {})
+}
+
 export function reportScore(matchId: string, scoreA: number, scoreB: number): Promise<BracketData> {
   return apiPost(v1(`/matches/${matchId}/score`), { scoreA, scoreB })
 }

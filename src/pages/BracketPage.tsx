@@ -7,6 +7,7 @@ import {
   fetchTournament,
   generateBracket,
   reportScore,
+  startMatch,
   swapBracketSlots,
 } from '../api/tournaments'
 import { useAnnoncesEnDirect } from '../components/Annonces'
@@ -72,18 +73,30 @@ function TeamRow({
 function MatchCard({
   m,
   onScore,
+  onStart,
   reorganisation,
   selection,
   onPick,
 }: {
   m: BracketMatch
   onScore?: (m: BracketMatch) => void
+  /** Démarre le match — absent si le lecteur n'organise pas ce tournoi. */
+  onStart?: (m: BracketMatch) => void
   /** Mode réorganisation actif : les clics déplacent, ils ne saisissent plus. */
   reorganisation?: boolean
   selection?: Emplacement | null
   onPick?: (emplacement: Emplacement, vide: boolean) => void
 }) {
   const deplacable = reorganisation === true && estReorganisable(m)
+  // Démarrable : les deux équipes sont connues, le match n'a pas commencé et n'est
+  // pas joué. C'est ce qui déclenche l'annonce « Début du match ».
+  const demarrable =
+    !reorganisation &&
+    onStart !== undefined &&
+    m.matchId !== undefined &&
+    m.status === 'scheduled' &&
+    !m.a.tbd &&
+    !m.b.tbd
   const scorable =
     !reorganisation &&
     onScore !== undefined &&
@@ -148,6 +161,21 @@ function MatchCard({
           onPick={pick(2, m.b.tbd === true)}
           selected={memeEmplacement(selection ?? null, { matchId: m.matchId ?? '', slot: 2 })}
         />
+        {demarrable && (
+          <button
+            className="btn btn-outline btn-h8"
+            data-no-drag
+            style={{ width: '100%', borderRadius: 0 }}
+            // Arrête la propagation : sans cela, le clic ouvrirait aussi la saisie
+            // de score, qui est posée sur la carte entière.
+            onClick={(e) => {
+              e.stopPropagation()
+              onStart?.(m)
+            }}
+          >
+            Lancer le match
+          </button>
+        )}
       </div>
     </div>
   )
@@ -287,6 +315,23 @@ export function BracketPage() {
     setDerniereAnnonce(a.message)
     fetchBracket(id).then(setData).catch(() => undefined)
   })
+
+  /**
+   * Démarre un match : il passe en direct et l'annonce part.
+   *
+   * L'arbre est remplacé par la réponse du serveur, qui porte déjà le nouveau
+   * statut — pas de mise à jour optimiste, un match affiché en direct alors que
+   * l'appel a échoué serait un mensonge.
+   */
+  async function demarrer(m: BracketMatch) {
+    if (!m.matchId) return
+    setScoreError(null)
+    try {
+      setData(await startMatch(m.matchId))
+    } catch (err) {
+      setSwapError(err instanceof Error ? err.message : 'Impossible de lancer ce match.')
+    }
+  }
 
   async function exporter() {
     setExportErreur(null)
@@ -499,7 +544,7 @@ export function BracketPage() {
     <Shell
       className="bracket-page"
       breadcrumbs={[
-        { label: 'Admin', to: '/' },
+        { label: 'Accueil', to: '/' },
         { label: tournament?.name ?? 'Tournoi', to: `/tournois/${id}` },
         { label: 'Bracket' },
       ]}
@@ -597,6 +642,10 @@ export function BracketPage() {
                           m={m}
                           key={m.id}
                           onScore={setScoring}
+                          // Réservé à l'organisateur du tournoi : afficher un
+                          // bouton qui échoue en 403 au clic serait pire que ne
+                          // pas l'afficher.
+                          onStart={tournament?.viewerIsOrganizer ? demarrer : undefined}
                           reorganisation={reorganisation}
                           selection={selection}
                           onPick={choisirEmplacement}

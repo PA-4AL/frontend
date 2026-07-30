@@ -35,7 +35,7 @@ export function ValidationsPage() {
   }
 
   return (
-    <Shell breadcrumbs={[{ label: 'Admin', to: '/' }, { label: 'Validations' }]}>
+    <Shell breadcrumbs={[{ label: 'Accueil', to: '/' }, { label: 'Validations' }]}>
       <main className="app-content" style={{ maxWidth: 1280, margin: '0 auto', width: '100%' }}>
         <div className="page-head">
           <div>
