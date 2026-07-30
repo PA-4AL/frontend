@@ -1,6 +1,7 @@
 import { apiGet, apiPost, v1 } from './client'
 import type {
   ActivityItem,
+  Annonce,
   BracketData,
   DashboardKpis,
   Job,
@@ -77,6 +78,20 @@ export function importTeams(req: {
   hasHeader: boolean
 }): Promise<Job> {
   return apiPost(v1('/teams/import'), req)
+}
+
+/** Cloche : annonces des tournois où l'on est engagé, et compteur de non-lues. */
+export function fetchMesAnnonces(): Promise<{ annonces: Annonce[]; nonLues: number }> {
+  return apiGet(v1('/announcements'))
+}
+
+export function marquerAnnoncesLues(): Promise<void> {
+  return apiPost(v1('/announcements/seen'), {})
+}
+
+/** Annonces d'un tournoi — publiques, comme le bracket qu'elles commentent. */
+export function fetchAnnoncesTournoi(tournamentId: string): Promise<Annonce[]> {
+  return apiGet(v1(`/tournaments/${tournamentId}/announcements`))
 }
 
 export function fetchJob(jobId: string): Promise<Job> {

@@ -214,3 +214,17 @@ export interface Job {
     [k: string]: unknown
   } | null
 }
+
+/**
+ * Annonce d'un tournoi. `message` est du **texte**, pas du HTML : le fil
+ * d'activité a déjà produit une faille XSS en renvoyant du balisage.
+ */
+export interface Annonce {
+  id: string
+  tournamentId: string
+  tournamentName?: string
+  /** match_start | match_end | round_advance | bracket_generated | tournament_finished */
+  kind: string
+  message: string
+  time?: string
+}

@@ -9,6 +9,7 @@ import {
   reportScore,
   swapBracketSlots,
 } from '../api/tournaments'
+import { useAnnoncesEnDirect } from '../components/Annonces'
 import { peutDemarrerUnGlissement } from './bracketDrag'
 import { estReorganisable, memeEmplacement, prochaineAction, type Emplacement } from './bracketSwap'
 import { aideFormat, libelleFormat } from '../lib/formats'
@@ -248,6 +249,7 @@ export function BracketPage() {
   const [swapError, setSwapError] = useState<string | null>(null)
   const [exportEtat, setExportEtat] = useState<string | null>(null)
   const [exportErreur, setExportErreur] = useState<string | null>(null)
+  const [derniereAnnonce, setDerniereAnnonce] = useState<string | null>(null)
 
   /**
    * Réorganisation en deux clics : sélectionner une équipe, puis sa destination.
@@ -279,6 +281,13 @@ export function BracketPage() {
    * L'attente est bornée : sans plafond, un worker en panne laisserait le bouton
    * tourner indéfiniment sans jamais rien dire à l'utilisateur.
    */
+  // Le direct sert deux choses : afficher l'annonce, et rafraîchir l'arbre — un
+  // score saisi par un autre organisateur doit apparaître sans rechargement.
+  useAnnoncesEnDirect(id, (a) => {
+    setDerniereAnnonce(a.message)
+    fetchBracket(id).then(setData).catch(() => undefined)
+  })
+
   async function exporter() {
     setExportErreur(null)
     setExportEtat('Export…')
@@ -522,6 +531,12 @@ export function BracketPage() {
           {exportEtat ?? 'Exporter'}
         </button>
       </div>
+
+      {derniereAnnonce && (
+        <div className="card card-pad" data-no-drag style={{ margin: '0 0 12px' }}>
+          <strong>En direct</strong> — {derniereAnnonce}
+        </div>
+      )}
 
       {exportErreur && (
         <div className="card card-pad" data-no-drag style={{ margin: '0 0 12px' }}>
